@@ -1,0 +1,7 @@
+# Last-known-good hand-rebase snapshot for linux-cachyos-surface-latest.
+# Format: rebased_from=<linux-surface tag the patches were taken from>
+#         validated_against=<cachyos kernel version this patch set was confirmed to build+boot on>
+#         date=<when this snapshot was last confirmed>
+rebased_from=arch-6.19.8-3
+validated_against=cachyos-7.1.3
+date=2026-07-13

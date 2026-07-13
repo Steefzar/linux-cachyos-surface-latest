@@ -1,0 +1,39 @@
+linux-cachyos-surface-latest
+=============================
+
+This repository's git history is seeded from linux-surface/linux-surface (it
+is not a GitHub-tracked Fork of that repo only because GitHub allows just one
+fork per source repo per account, and that slot is used by the sibling
+project github.com/Steefzar/linux-cachyos-surface -- the content and history
+base are the same). It adds a CachyOS kernel packaging
+(`pkg/linux-cachyos-surface-latest/PKGBUILD`) that tracks the newest CachyOS
+kernel release, rather than whatever version linux-surface's official patches
+currently support.
+
+When linux-surface's official patches already cover the target kernel's major
+version, this builds identically to `linux-cachyos-surface`. When there's a
+version gap, it falls back to a hand-rebased patch set bundled in
+`pkg/linux-cachyos-surface-latest/surface-patches/` (see `STATUS` in that
+directory for what it was last validated against). That fallback is
+best-effort: if it stops applying cleanly against a newer kernel, the build
+aborts with a clear message rather than silently shipping something broken,
+and a fresh rebase (manual, or with Claude's help as before) is needed.
+
+Credit and thanks:
+
+  - linux-surface/linux-surface (https://github.com/linux-surface/linux-surface)
+    -- GPL-2.0. Every Surface hardware-enablement patch this kernel carries,
+    whether applied directly or as the basis of the hand-rebase, originates
+    here. This is the only external upstream this packaging depends on.
+
+  - CachyOS/linux-cachyos (https://github.com/CachyOS/linux-cachyos) and
+    CachyOS/linux (https://github.com/CachyOS/linux) -- the CachyOS kernel
+    base and packaging conventions this PKGBUILD is adapted from.
+
+This packaging, and the hand-rebase of linux-surface's 6.19 patches onto
+CachyOS 7.1.3 currently bundled in `surface-patches/`, were produced with
+Claude Code (Anthropic) assistance, at the direction of and reviewed/tested
+(built, installed, booted, confirmed working) by the repository owner.
+Commits made with Claude's help are marked accordingly:
+
+    Co-Authored-By: Claude <noreply@anthropic.com>
