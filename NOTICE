@@ -13,8 +13,8 @@ currently support.
 When linux-surface's official patches already cover the target kernel's major
 version, this builds identically to `linux-cachyos-surface`. When there's a
 version gap, it falls back to a hand-rebased patch set bundled in
-`pkg/linux-cachyos-surface-latest/surface-patches/` (see `STATUS` in that
-directory for what it was last validated against). That fallback is
+`pkg/linux-cachyos-surface-latest/` (see `STATUS` there for what it was last
+validated against). That fallback is
 best-effort: if it stops applying cleanly against a newer kernel, the build
 aborts with a clear message rather than silently shipping something broken,
 and a fresh rebase (manual, or with Claude's help as before) is needed.
@@ -31,7 +31,7 @@ Credit and thanks:
     base and packaging conventions this PKGBUILD is adapted from.
 
 This packaging, and the hand-rebase of linux-surface's 6.19 patches onto
-CachyOS 7.1.3 currently bundled in `surface-patches/`, were produced with
+CachyOS 7.1.3 currently bundled as `rebased.patch`, were produced with
 Claude Code (Anthropic) assistance, at the direction of and reviewed/tested
 (built, installed, booted, confirmed working) by the repository owner.
 Commits made with Claude's help are marked accordingly:

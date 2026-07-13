@@ -5,12 +5,12 @@
 # prepare() uses them directly (detected dynamically from their newest
 # `arch-*` tag every build -- no PKGBUILD edit needed when they catch up).
 # When there's a version gap, it falls back to the last-known-good hand
-# rebase bundled in surface-patches/ (see surface-patches/STATUS), applied
+# rebase bundled alongside this PKGBUILD (rebased.patch, see STATUS), applied
 # with patch's default fuzz tolerance. If that no longer applies cleanly
 # either, the build aborts with a clear message instead of silently
 # producing something broken -- that's the point where a manual (or
 # Claude-assisted) rebase session is needed, same as the one that produced
-# the current surface-patches/rebased.patch. See NOTICE for credits.
+# the current rebased.patch. See NOTICE for credits.
 # Maintained with Claude Code (Anthropic) assistance -- see NOTICE.
 #
 # Contributor (original CachyOS packaging conventions this is adapted from):
@@ -234,8 +234,8 @@ _nv_open_pkg="NVIDIA-kernel-module-source-${_nv_ver}"
 source=(
     "https://github.com/CachyOS/linux/releases/download/${_srcname}/${_srcname}.tar.gz"
     "config"
-    "surface-patches/rebased.patch"
-    "surface-patches/surface.config"
+    "rebased.patch"
+    "surface.config"
     "linux-surface::git+${_surface_repo_url}"
     )
 
@@ -311,7 +311,7 @@ prepare() {
     for src in "${source[@]}"; do
         src="${src%%::*}"
         [[ "$src" == "${_patchsource}"/misc/nvidia/*.patch ]] && continue
-        [[ "$src" == "surface-patches/"* ]] && continue
+        [[ "$src" == "rebased.patch" ]] && continue
         src="${src##*/}"
         src="${src%.zst}"
         [[ $src = *.patch ]] || continue
@@ -335,11 +335,11 @@ prepare() {
         echo "Setting config from linux-surface's own ${_major} fragment..."
         ./scripts/kconfig/merge_config.sh -m ../config "$_ls_dir/configs/surface-${_major}.config"
     else
-        echo ":: linux-surface ${_newest_ref} has no official ${_major} patches yet -- applying last-known-good hand-rebase (surface-patches/rebased.patch, see surface-patches/STATUS)."
+        echo ":: linux-surface ${_newest_ref} has no official ${_major} patches yet -- applying last-known-good hand-rebase (rebased.patch, see STATUS)."
         if ! patch -Np1 < ../rebased.patch; then
-            _die "surface-patches/rebased.patch no longer applies cleanly against ${_srcname} (even with patch's default fuzz tolerance). This needs a fresh manual/Claude-assisted rebase against the new source -- see the .rej files left under ${srcdir}/${_srcname} for what changed upstream. Not building ${pkgbase} this run; the previously-installed version is untouched."
+            _die "rebased.patch no longer applies cleanly against ${_srcname} (even with patch's default fuzz tolerance). This needs a fresh manual/Claude-assisted rebase against the new source -- see the .rej files left under ${srcdir}/${_srcname} for what changed upstream. Not building ${pkgbase} this run; the previously-installed version is untouched."
         fi
-        echo "Setting config from bundled surface-patches/surface.config..."
+        echo "Setting config from bundled surface.config..."
         ./scripts/kconfig/merge_config.sh -m ../config ../surface.config
     fi
 
