@@ -1,3 +1,41 @@
+## About this fork: `linux-cachyos-surface-latest`
+
+This fork adds a **CachyOS kernel packaging** on top of upstream
+linux-surface — see [`pkg/linux-cachyos-surface-latest/PKGBUILD`](pkg/linux-cachyos-surface-latest/PKGBUILD).
+Unlike its sibling [`linux-cachyos-surface`](https://github.com/Steefzar/linux-cachyos-surface)
+(which tracks whatever kernel version upstream linux-surface currently has
+*official* patches for), this one tracks the **newest CachyOS kernel
+release**, even ahead of upstream support:
+
+- If linux-surface's newest tag already covers that kernel's major version,
+  the build uses their patches directly — identical to the sibling package.
+- If not, it falls back to a hand-rebased patch set bundled in this repo
+  ([`rebased.patch`](pkg/linux-cachyos-surface-latest/rebased.patch), see
+  [`STATUS`](pkg/linux-cachyos-surface-latest/STATUS) for what it was last
+  validated against), applied with `patch`'s default fuzz tolerance. A clean
+  apply builds normally; if it no longer applies even with fuzz, the build
+  aborts with a clear message instead of shipping something broken — that's
+  the signal a fresh rebase is needed.
+
+**What it's for:** running the latest CachyOS kernel (EEVDF/BORE scheduler,
+LTO, BBR3, CachyOS's other tuning) with Surface hardware support, without
+waiting for upstream linux-surface to catch up to each new CachyOS release.
+
+**How to use it:**
+- Easiest: use the installer at
+  [Steefzar/surface-kernel-autoupdate](https://github.com/Steefzar/surface-kernel-autoupdate),
+  which sets up a local pacman repo and auto-builds/updates this package (and
+  its sibling `linux-cachyos-surface`) as part of your `yay` runs.
+- Manually: `makepkg` inside `pkg/linux-cachyos-surface-latest/` like any
+  PKGBUILD.
+
+linux-surface (below) is the only upstream this depends on for patches — see
+[`NOTICE`](NOTICE) for full credits and why this repo isn't a GitHub-tracked
+Fork like its sibling (GitHub only allows one Fork of a given repo per
+account).
+
+---
+
 # Linux Surface
 
 Linux running on the Microsoft Surface devices.
