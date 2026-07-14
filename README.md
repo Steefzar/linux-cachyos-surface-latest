@@ -59,8 +59,25 @@ This package builds on two upstreams: the [CachyOS
 kernel](https://github.com/CachyOS/linux) provides the base (its patches ship
 pre-applied in the source tarball), and linux-surface (below) provides the
 Surface hardware patches applied on top — hand-rebased here whenever
-linux-surface hasn't caught up to the newest CachyOS release yet. See
-[`NOTICE`](NOTICE) for full credits.
+linux-surface hasn't caught up to the newest CachyOS release yet.
+
+### Credits
+
+- [linux-surface/linux-surface](https://github.com/linux-surface/linux-surface)
+  (GPL-2.0) — every Surface hardware-enablement patch this kernel carries,
+  whether applied directly or as the basis of the hand-rebase, originates
+  there. This repo's git history is seeded from theirs.
+- [CachyOS/linux](https://github.com/CachyOS/linux) and
+  [CachyOS/linux-cachyos](https://github.com/CachyOS/linux-cachyos) — the
+  CachyOS kernel base (EEVDF/BORE scheduler, BBR3, LTO and other CachyOS
+  tuning) this build starts from, and the packaging conventions this
+  PKGBUILD is adapted from.
+
+This packaging, and the hand-rebase of linux-surface's patches bundled as
+`rebased.patch`, were produced with Claude Code (Anthropic) assistance, at
+the direction of and reviewed/tested (built, installed, booted, confirmed
+working) by the repository owner. Commits made with Claude's help are marked
+`Co-Authored-By: Claude <noreply@anthropic.com>`.
 
 ---
 
