@@ -22,12 +22,38 @@ LTO, BBR3, CachyOS's other tuning) with Surface hardware support, without
 waiting for upstream linux-surface to catch up to each new CachyOS release.
 
 **How to use it:**
-- Easiest: use the installer at
-  [Steefzar/surface-kernel-autoupdate](https://github.com/Steefzar/surface-kernel-autoupdate),
-  which sets up a local pacman repo and auto-builds/updates this package (and
-  its sibling `linux-cachyos-surface`) as part of your `yay` runs.
-- Manually: `makepkg` inside `pkg/linux-cachyos-surface-latest/` like any
-  PKGBUILD.
+
+*Precompiled packages (easiest — no local kernel build):* builds of this
+package (and its sibling) are published as a signed pacman repository served
+from GitHub Releases. One-time setup — first trust the signing key:
+
+```sh
+curl -s https://raw.githubusercontent.com/Steefzar/linux-cachyos-surface-latest/master/pkg/keys/surface-cachyos.asc \
+    | sudo pacman-key --add -
+sudo pacman-key --finger F43A86B2BAA715242965C241222C2A1B58F14BA7
+sudo pacman-key --lsign-key F43A86B2BAA715242965C241222C2A1B58F14BA7
+```
+
+Then add the repository to `/etc/pacman.conf`:
+
+```ini
+[surface-cachyos]
+Server = https://github.com/Steefzar/surface-kernel-autoupdate/releases/download/repo
+```
+
+And install:
+
+```sh
+sudo pacman -Syu linux-cachyos-surface-latest linux-cachyos-surface-latest-headers
+```
+
+*Build it yourself, auto-updated:* use the installer at
+[Steefzar/surface-kernel-autoupdate](https://github.com/Steefzar/surface-kernel-autoupdate),
+which sets up a local pacman repo and auto-builds/updates this package (and
+its sibling `linux-cachyos-surface`) as part of your `yay` runs.
+
+*Fully manual:* `makepkg` inside `pkg/linux-cachyos-surface-latest/` like any
+PKGBUILD.
 
 linux-surface (below) is the only upstream this depends on for patches — see
 [`NOTICE`](NOTICE) for full credits and why this repo isn't a GitHub-tracked
