@@ -17,6 +17,10 @@ release**, even ahead of upstream support:
   aborts with a clear message instead of shipping something broken — that's
   the signal a fresh rebase is needed.
 
+> **Prefer only kernel versions linux-surface officially supports?** Use
+> the sibling package:
+> [`linux-cachyos-surface`](https://github.com/Steefzar/linux-cachyos-surface).
+
 **What it's for:** running the latest CachyOS kernel (EEVDF/BORE scheduler,
 LTO, BBR3, CachyOS's other tuning) with Surface hardware support, without
 waiting for upstream linux-surface to catch up to each new CachyOS release.
