@@ -55,10 +55,12 @@ its sibling `linux-cachyos-surface`) as part of your `yay` runs.
 *Fully manual:* `makepkg` inside `pkg/linux-cachyos-surface-latest/` like any
 PKGBUILD.
 
-linux-surface (below) is the only upstream this depends on for patches — see
-[`NOTICE`](NOTICE) for full credits and why this repo isn't a GitHub-tracked
-Fork like its sibling (GitHub only allows one Fork of a given repo per
-account).
+This package builds on two upstreams: the [CachyOS
+kernel](https://github.com/CachyOS/linux) provides the base (its patches ship
+pre-applied in the source tarball), and linux-surface (below) provides the
+Surface hardware patches applied on top — hand-rebased here whenever
+linux-surface hasn't caught up to the newest CachyOS release yet. See
+[`NOTICE`](NOTICE) for full credits.
 
 ---
 
