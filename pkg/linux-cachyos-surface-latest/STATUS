@@ -5,3 +5,30 @@
 rebased_from=arch-6.19.8-3
 validated_against=cachyos-7.1.3
 date=2026-07-13
+
+# 2026-09-04 -- context-only refresh for the 7.2 series. No semantic change.
+#
+# CachyOS moved to 7.2 while linux-surface's newest tag is still arch-6.19.8-3
+# (its patches/ tops out at 6.19), so this fallback hand-rebase is what builds.
+# Every scheduled run from 2026-08-18 onward aborted on a single hunk:
+#
+#   include/linux/pci.h @509 -- adds no_shutdown:1 to struct pci_dev
+#
+# The field itself is unchanged upstream; only the comment on the adjacent
+# context line moved:
+#   -   /* BARs can't be mapped to user-space  */
+#   +   /* BARs can't be mapped by CPU or peers */
+# patch's fuzz cannot absorb that: fuzz trims context from the outer ends
+# inward, and this is the innermost leading context line.
+#
+# Checked before changing it:
+#   - torvalds/linux v7.2 and master still do NOT define no_shutdown, so the
+#     hunk is still required. This is not upstream catching up.
+#   - Full dry-run against cachyos-7.2.3-2: 92 files, 0 failures, 0 rejects,
+#     0 hunks needing fuzz (50 applied at an offset, which is expected).
+#   - No duplicate definitions introduced across the 46 modified files, and no
+#     added enum constant collides with an existing raw value -- the two ways a
+#     clean `patch` exit has silently broken this build before.
+#
+# NOT build-validated. validated_against deliberately stays at cachyos-7.1.3
+# until a 7.2 kernel actually compiles and boots; bump it then.
