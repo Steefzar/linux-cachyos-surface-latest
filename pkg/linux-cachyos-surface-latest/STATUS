@@ -3,8 +3,8 @@
 #         validated_against=<cachyos kernel version this patch set was confirmed to build+boot on>
 #         date=<when this snapshot was last confirmed>
 rebased_from=arch-6.19.8-3
-validated_against=cachyos-7.1.3
-date=2026-07-13
+validated_against=cachyos-7.2.3-2
+date=2026-09-10
 
 # 2026-09-04 -- context-only refresh for the 7.2 series. No semantic change.
 #
@@ -30,5 +30,60 @@ date=2026-07-13
 #     added enum constant collides with an existing raw value -- the two ways a
 #     clean `patch` exit has silently broken this build before.
 #
-# NOT build-validated. validated_against deliberately stays at cachyos-7.1.3
-# until a 7.2 kernel actually compiles and boots; bump it then.
+# RESOLVED 2026-09-10: that refresh is now build- AND boot-validated.
+# cachyos-7.2.3-2 compiled clean in ~4 h on the TrueNAS builder and published
+# as linux-cachyos-surface-latest 7.2.3-1, and the Surface Laptop 4 has since
+# been running 7.2.3-1-cachyos-surface-latest. validated_against is therefore
+# bumped from cachyos-7.1.3 to cachyos-7.2.3-2. (The 7.2.3 bump was written on
+# 2026-09-04 but never committed; this is that bump, with the boot caveat it
+# carried now closed.)
+
+# 2026-09-10 -- semantic fix for cachyos-7.2.4-1: our Bluetooth quirk bit
+# collided with a new upstream one. THIS IS NOT A CONTEXT-ONLY REFRESH.
+#
+# Every scheduled run from 2026-09-09 onward aborted on a single hunk:
+#
+#   drivers/bluetooth/btusb.c @67 -- adds BTUSB_LOWER_LESCAN_INTERVAL
+#
+# 7.2.4 added its own quirk bit in exactly the slot ours used:
+#
+#   #define BTUSB_BARROT			BIT(28)
+#   #define BTUSB_BROKEN_EXT_SCAN		BIT(29)   <- new upstream, 7.2.4
+#
+# Our patch appended BTUSB_LOWER_LESCAN_INTERVAL as BIT(29). The reject is the
+# safety net working as intended: had patch absorbed this with fuzz, the tree
+# would have compiled with TWO different quirk macros both equal to BIT(29),
+# so every 0x1286:0x204c Marvell card would also have been treated as
+# BTUSB_BROKEN_EXT_SCAN and vice versa. That is precisely the "added constant
+# collides with an existing raw value" failure the 2026-09-04 note lists.
+#
+# Fix: ours moves to BIT(30), and the hunk's context now carries upstream's
+# BIT(29) line. BIT(30) and BIT(31) were both free in 7.2.4; driver_info is a
+# kernel_ulong_t, so there is plenty of room left.
+#
+# Checked before changing it:
+#   - Pristine 7.2.4 has neither the 0x1286:0x204c device entry nor any
+#     le_scan_interval/le_scan_window handling, so the quirk is still required.
+#     This is not upstream catching up.
+#   - Full apply against a pristine cachyos-7.2.4-1 tree, with dkms-clang.patch
+#     applied first exactly as prepare() does: 92 files, 0 failures, 0 rejects,
+#     0 hunks needing fuzz (51 applied at an offset, which is expected). Also
+#     passes with `patch -F0`, which tolerates no fuzz at all.
+#   - No duplicate BTUSB_* BIT() value remains in btusb.c, and the only
+#     duplicate #define names anywhere in the 92 patched files
+#     (header.S, pci-me.c, pci-driver.c, pci.h) are byte-identical to pristine
+#     -- pre-existing #ifdef/#else pairs upstream, not introduced here.
+#
+# WATCH OUT when hand-editing a hunk: keep the leading and trailing context
+# BALANCED. The first attempt at this fix added upstream's BIT(29) line as a
+# 4th leading context line while leaving 3 trailing, and re-numbered the
+# header to @@ -67,7 +67,8 @@. That hunk is a perfectly valid unified diff --
+# `git apply --check` accepts it -- but GNU patch, which is what prepare()
+# actually runs, then applied it "with fuzz 1" and failed outright under -F0.
+# A hunk regenerated with `diff -U3` (3 leading, 3 trailing, header
+# @@ -68,6 +68,7 @@) applies with zero fuzz. Generate replacement hunks with
+# diff rather than renumbering the header by hand.
+#
+# NOT build-validated on 7.2.4 yet: the patch set applies perfectly, but no
+# 7.2.4 kernel has been compiled or booted. validated_against deliberately
+# stays at cachyos-7.2.3-2 until one has; bump it then.
