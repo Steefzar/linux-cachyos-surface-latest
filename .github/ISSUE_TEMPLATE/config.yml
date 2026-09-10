@@ -1,0 +1,16 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🖥️ Surface hardware support (camera, touchscreen, pen, SAM, sensors, suspend)
+    url: https://github.com/linux-surface/linux-surface/issues
+    about: >-
+      This repo only packages linux-surface's patches on top of a CachyOS
+      kernel; it does not write them. If a piece of Surface hardware is
+      unsupported, misbehaving, or oriented wrongly on ANY kernel, that belongs
+      upstream with linux-surface, not here. Report here only if it works on
+      another kernel and breaks on this one.
+  - name: ⚙️ The CachyOS kernel itself (scheduler, LTO, BBR3, kernel config defaults)
+    url: https://github.com/CachyOS/kernel-patches/issues
+    about: >-
+      Behaviour you would also get from plain linux-cachyos, with no Surface
+      involvement, comes from CachyOS's own patches. Test with linux-cachyos
+      first; if it reproduces there, report it to CachyOS.

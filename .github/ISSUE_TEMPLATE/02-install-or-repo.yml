@@ -1,0 +1,94 @@
+name: 📥 I cannot install or update from the pacman repo
+description: Adding the repo, trusting the signing key, signature errors, or pacman refusing the packages
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## ⚠️ READ FIRST
+
+        - **🔍 Search before posting, including closed issues.** Key trust and
+          signature problems recur, so the fix for yours may already be written
+          down in a closed issue. Comment there instead of opening a new one.
+        - **📜 Re-read the install steps in the README.** Most reports here are
+          one skipped step, usually importing and **locally signing** the
+          signing key before the first `pacman -Syu`.
+        - **🔑 "Unknown trust" or "invalid or corrupted package" is almost always
+          key trust**, not a bad package. Check that the key is imported and
+          locally signed, then try again before reporting.
+        - **📦 x86_64 Arch-based distributions only.** These are Arch packages
+          for 64-bit x86. There are no ARM builds, and no Debian or Fedora
+          packages here despite what leftover workflows in this fork suggest.
+        - **📭 "There is no new version" is often correct and deliberate.** When
+          CachyOS moves ahead of linux-surface, this repo falls back to a
+          hand-rebased patch set, and if that stops applying the build aborts on
+          purpose rather than publishing something broken.
+          `pkg/linux-cachyos-surface-latest/STATUS` records where it stands.
+        - **📋 Paste text, not screenshots.** Output must be copy-pasteable.
+  - type: checkboxes
+    id: acknowledgements
+    attributes:
+      label: ✅ Before you continue
+      options:
+        - label: I searched the open **and closed** issues and did not find this
+          required: true
+        - label: I followed the install steps in the README, including importing **and locally signing** the signing key
+          required: true
+        - label: I am on an x86_64 Arch-based distribution
+          required: true
+  - type: dropdown
+    id: stage
+    attributes:
+      label: 🧭 Where does it go wrong?
+      options:
+        - Importing or trusting the signing key
+        - Adding the repo to /etc/pacman.conf
+        - "pacman -Sy: refreshing the repo database"
+        - "pacman -S / -Syu: downloading or installing the packages"
+        - Signature verification of a downloaded package
+        - No new version appears at all
+        - Something else
+    validations:
+      required: true
+  - type: input
+    id: command
+    attributes:
+      label: ⌨️ The exact command you ran
+      placeholder: sudo pacman -Syu linux-cachyos-surface-latest
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: ❌ Full output, start to finish
+      description: The whole thing, not just the last line. Trimming it usually removes the cause.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: pacmanconf
+    attributes:
+      label: ⚙️ Your repo section from /etc/pacman.conf
+      description: The stanza for this project's repo, plus any Server or SigLevel lines under it
+      render: ini
+    validations:
+      required: true
+  - type: input
+    id: distro
+    attributes:
+      label: 🐧 Distribution and pacman version
+      description: "Output of `pacman -Q pacman` plus your distro name"
+      placeholder: Arch Linux, pacman 7.0.0-9
+    validations:
+      required: true
+  - type: textarea
+    id: keys
+    attributes:
+      label: 🔑 Key state - required for any trust or signature error
+      description: "Output of `pacman-key --list-keys` filtered to this project's key, or the full output if you are unsure which it is"
+      render: shell
+  - type: textarea
+    id: context
+    attributes:
+      label: 🖼️ Anything else
+      description: Mirrors, a proxy, an offline machine, a previously working setup that stopped

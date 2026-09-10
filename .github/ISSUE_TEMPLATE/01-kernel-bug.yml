@@ -1,0 +1,167 @@
+name: 🐛 Something is broken on a kernel from this repo
+description: A kernel built here boots wrong, breaks hardware, or behaves worse than another kernel
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## ⚠️ READ FIRST
+
+        - **🔍 Search before posting, including closed issues.** Closed does not
+          mean irrelevant here: the usual reason an issue closes is that a later
+          kernel fixed it, so a closed issue may well hold your answer. If you
+          find yours, comment there instead of opening a new one.
+        - **🧪 Test another kernel first.** This is the single most useful thing
+          you can do, and it decides who can even fix your problem. Install
+          `linux-cachyos` (same CachyOS base, no Surface patches) or your
+          distro's `linux`, boot it, and try again. If it breaks there too, the
+          cause is not in this repo and the issue belongs to
+          [CachyOS](https://github.com/CachyOS/kernel-patches/issues) or to
+          upstream Linux.
+        - **🖥️ Hardware that has never worked is an upstream matter.** Cameras,
+          pen, touch, sensors and suspend quirks come from
+          [linux-surface](https://github.com/linux-surface/linux-surface/issues),
+          which this repo packages rather than writes. Open it there. Report
+          here only when something *regressed* on a kernel from this repo.
+        - **📜 Check `STATUS` before reporting a missing update.** CachyOS often
+          moves ahead of linux-surface, and when it does this repo builds a
+          hand-rebased patch set. If that stops applying, the build **aborts on
+          purpose** rather than shipping a broken kernel, so you see no new
+          version instead of a broken one. That is expected, and
+          `pkg/linux-cachyos-surface-latest/STATUS` records what the current
+          patch set was last validated against.
+        - **📋 Paste text, not screenshots.** Logs must be copy-pasteable.
+        - **🙋 One maintainer, one device.** This is maintained by one person on
+          a **Surface Laptop 4 (AMD)**. Anything specific to another Surface
+          model cannot be reproduced here, so expect to be asked to test a
+          patch yourself. Detail decides whether your report goes anywhere.
+
+        Thanks for taking the time. The more of the below you fill in, the
+        better the odds of this getting solved.
+  - type: checkboxes
+    id: acknowledgements
+    attributes:
+      label: ✅ Before you continue
+      options:
+        - label: I searched the open **and closed** issues and did not find this
+          required: true
+        - label: This is a regression on a kernel from this repo, not hardware that never worked (that goes to linux-surface)
+          required: true
+        - label: I read the note about `STATUS` above and this is not simply a build that aborted on purpose
+          required: true
+  - type: dropdown
+    id: package
+    attributes:
+      label: 📦 Which package?
+      options:
+        - linux-cachyos-surface-latest
+        - linux-cachyos-surface
+        - both
+        - not sure
+    validations:
+      required: true
+  - type: input
+    id: pkgver
+    attributes:
+      label: 🔢 Exact package version
+      description: "Output of `pacman -Q linux-cachyos-surface-latest linux-cachyos-surface` (whichever you have)"
+      placeholder: linux-cachyos-surface-latest 7.2.4-1
+    validations:
+      required: true
+  - type: input
+    id: uname
+    attributes:
+      label: 🧬 Running kernel
+      description: "Output of `uname -r`"
+      placeholder: 7.2.4-1-cachyos-surface-latest
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: 🖥️ Surface model, exactly
+      description: Include the CPU vendor, because AMD and Intel variants of the same model differ a lot
+      placeholder: Surface Laptop 4 (AMD Ryzen 5), Surface Pro 8 (Intel), Surface Laptop 2, ...
+    validations:
+      required: true
+  - type: dropdown
+    id: install_method
+    attributes:
+      label: 📥 How did you install it?
+      options:
+        - From the signed pacman repo published by this project
+        - Built locally from the PKGBUILD in this repo
+        - Other (explain below)
+    validations:
+      required: true
+  - type: input
+    id: distro
+    attributes:
+      label: 🐧 Distribution
+      placeholder: CachyOS / Arch Linux / EndeavourOS / ...
+    validations:
+      required: true
+  - type: dropdown
+    id: other_kernel
+    attributes:
+      label: 🧪 Does it also happen on a kernel WITHOUT the Surface patches?
+      description: Test `linux-cachyos` or your distro's `linux`. This decides whether the cause is in this repo at all.
+      options:
+        - "No - it works on the other kernel and only breaks on this one"
+        - "Yes - it breaks there too (then this likely is not a this-repo issue)"
+        - "I have not tested, and here is why (explain below)"
+    validations:
+      required: true
+  - type: dropdown
+    id: bootloader
+    attributes:
+      label: 🥾 Bootloader
+      description: Matters for anything that fails before or during early boot
+      options:
+        - systemd-boot
+        - GRUB
+        - Limine
+        - rEFInd
+        - Other / not sure
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: 📝 What happens, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 🔄 Steps to reproduce
+      placeholder: |
+        1. Boot 7.2.4-1-cachyos-surface-latest
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: ❌ Kernel log
+      description: |
+        `sudo dmesg` for a running system, or `journalctl -k -b -1` for the boot that failed.
+        If it never reaches userspace, photograph the screen and describe it under "Anything else".
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: initramfs
+    attributes:
+      label: 🧱 Initramfs details - required if the problem happens before or during boot
+      description: |
+        Paste the MODULES and HOOKS lines from /etc/mkinitcpio.conf, plus
+        `lsinitcpio /boot/initramfs-linux-cachyos-surface-latest.img | grep -i surface`.
+        Most "keyboard dead at the encryption passphrase" reports are solved here.
+      render: shell
+  - type: textarea
+    id: context
+    attributes:
+      label: 🖼️ Anything else
+      description: Last known working version, dual boot, custom kernel parameters, a patch you already tried
