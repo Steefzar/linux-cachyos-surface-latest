@@ -3,8 +3,8 @@
 #         validated_against=<cachyos kernel version this patch set was confirmed to build+boot on>
 #         date=<when this snapshot was last confirmed>
 rebased_from=arch-6.19.8-3
-validated_against=cachyos-7.2.3-2
-date=2026-09-10
+validated_against=cachyos-7.2.6-1
+date=2026-09-18
 
 # 2026-09-04 -- context-only refresh for the 7.2 series. No semantic change.
 #
