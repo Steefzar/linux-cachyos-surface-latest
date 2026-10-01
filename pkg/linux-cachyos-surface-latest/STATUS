@@ -87,3 +87,45 @@ date=2026-09-18
 # NOT build-validated on 7.2.4 yet: the patch set applies perfectly, but no
 # 7.2.4 kernel has been compiled or booted. validated_against deliberately
 # stays at cachyos-7.2.3-2 until one has; bump it then.
+
+# 2026-10-01 -- new LOCAL patch, independent of the linux-surface rebase:
+# amd-pstate-readonly-auto-sel.patch. pkgrel bumped 1 -> 2 so the builder
+# rebuilds cachyos-7.2.8-1 with it (it skips a pkgver-pkgrel it already has).
+#
+# Why: on the Surface Laptop 4 AMD (Ryzen 5 4680U, Renoir) amd-pstate never
+# loads, in any mode, and the CPU falls back to acpi-cpufreq with three fixed
+# P-states (1.4/1.7/2.2 GHz + boost) instead of the ~400 MHz-4 GHz CPPC range:
+#
+#   amd_pstate: failed to set auto_sel, ret: -95
+#   amd_pstate: Failed to initialize CPU 0: -95      (x12)
+#   amd_pstate: failed to register with return -19
+#
+# Booting with amd_pstate=passive gave the identical log. Cause: the firmware
+# _CPC declares auto_sel as a read-only integer that is ON. cppc_get_auto_sel()
+# succeeds, but cppc_set_reg_val() rejects any non-buffer register with
+# -EOPNOTSUPP, and shmem_init_perf() in drivers/cpufreq/amd-pstate.c returns
+# that error even when the value already matches. That write arrived between
+# v6.12 and v6.15 and is unchanged in torvalds master as of 2026-10-01.
+#
+# The patch skips the write when auto_sel already holds the mode's value. On
+# this firmware that lets active (default) and guided mode initialise; passive
+# needs auto_sel off and still cannot work here. Whether active then succeeds
+# depends on the firmware's EPP register, which is unknown -- if active still
+# fails, boot with amd_pstate=guided.
+#
+# Checked before committing:
+#   - Generated with diff -U3 against CachyOS's own amd-pstate.c at tag
+#     cachyos-7.2.8-1 (it differs from vanilla 7.2.8). Applies with -F0, no
+#     fuzz, no offset. Neither rebased.patch nor dkms-clang.patch touches that
+#     file, so patch order does not matter.
+#   - Compiled with clang (LLVM=1, W=1) against the installed
+#     7.2.8-1-cachyos-surface-latest headers, patched and unpatched: no errors,
+#     no new warnings.
+#   - prepare() applies it only if a -F0 dry run passes, otherwise prints
+#     ":: amd-pstate: ... building without it" and carries on. Deliberate: an
+#     optional cpufreq fix must never block a kernel update. Both paths were
+#     run under set -eE with an ERR trap, as makepkg runs prepare().
+#
+# NOT build- or boot-validated yet. If amd-pstate loads, scaling_driver reads
+# amd-pstate or amd-pstate-epp; if the patch ever stops applying, look for the
+# ":: amd-pstate:" line in the build log and regenerate it with diff -U3.

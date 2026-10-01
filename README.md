@@ -14,6 +14,11 @@ release**, even ahead of upstream support:
   [`STATUS`](pkg/linux-cachyos-surface-latest/STATUS) for what it was last
   validated against). If that no longer applies against a newer kernel, the
   build aborts with a clear message instead of shipping something broken.
+- Either way it also carries one local fix that is not from linux-surface,
+  [`amd-pstate-readonly-auto-sel.patch`](pkg/linux-cachyos-surface-latest/amd-pstate-readonly-auto-sel.patch),
+  which lets `amd-pstate` load on firmware that declares CPPC `auto_sel`
+  read-only (Surface Laptop 4 AMD). It is skipped, not fatal, if it stops
+  applying.
 
 > **Prefer only kernel versions linux-surface officially supports?** Use
 > the sibling package:

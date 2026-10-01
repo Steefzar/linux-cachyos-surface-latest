@@ -201,7 +201,7 @@ _tagrel=1
 # also the release tag name.
 _srcname=cachyos-${_major}.${_minor}-${_tagrel}
 pkgdesc='CachyOS kernel (EEVDF/BORE + LTO + Surface patches), tracking the newest CachyOS release ahead of linux-surface official support when needed'
-pkgrel=1
+pkgrel=2
 _kernver="$pkgver-$pkgrel"
 _kernuname="${pkgver}-${_pkgsuffix}"
 
@@ -235,6 +235,7 @@ source=(
     "https://github.com/CachyOS/linux/releases/download/${_srcname}/${_srcname}.tar.gz"
     "config"
     "rebased.patch"
+    "amd-pstate-readonly-auto-sel.patch"
     "surface.config"
     "linux-surface::git+${_surface_repo_url}"
     )
@@ -312,12 +313,25 @@ prepare() {
         src="${src%%::*}"
         [[ "$src" == "${_patchsource}"/misc/nvidia/*.patch ]] && continue
         [[ "$src" == "rebased.patch" ]] && continue
+        [[ "$src" == "amd-pstate-readonly-auto-sel.patch" ]] && continue
         src="${src##*/}"
         src="${src%.zst}"
         [[ $src = *.patch ]] || continue
         echo "Applying patch $src..."
         patch -Np1 < "../$src"
     done
+
+    # Local fix, not from linux-surface (see STATUS): lets amd-pstate load on
+    # firmware whose _CPC declares auto_sel read-only (Surface Laptop 4 AMD).
+    # Optional on purpose: if it stops applying with zero fuzz -- upstream
+    # changed the code or fixed it -- build without it rather than block the
+    # kernel update.
+    if patch -Np1 -F0 --dry-run < ../amd-pstate-readonly-auto-sel.patch > /dev/null; then
+        echo ":: amd-pstate: applying amd-pstate-readonly-auto-sel.patch"
+        patch -Np1 -F0 < ../amd-pstate-readonly-auto-sel.patch
+    else
+        echo ":: amd-pstate: amd-pstate-readonly-auto-sel.patch does not apply to ${_srcname}, building without it (see STATUS)"
+    fi
 
     echo "Checking whether linux-surface has official ${_major} patches yet..."
     local _ls_dir="$srcdir/linux-surface"

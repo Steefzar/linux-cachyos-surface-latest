@@ -1,0 +1,42 @@
+From: Stefan <104927860+Steefzar@users.noreply.github.com>
+Subject: [PATCH] cpufreq/amd-pstate: don't write a read-only auto_sel that
+ already has the wanted value
+
+On shared-memory CPPC systems shmem_init_perf() reads auto_sel and then
+always writes it, returning the write's error. Some firmware declares
+auto_sel in _CPC as a constant integer rather than a register. Reading it
+works, but cppc_set_reg_val() rejects any non-buffer register with
+-EOPNOTSUPP, so driver init fails on every CPU in every mode:
+
+  amd_pstate: failed to set auto_sel, ret: -95
+  amd_pstate: Failed to initialize CPU 0: -95
+  ...
+  amd_pstate: failed to register with return -19
+
+The system then falls back to acpi-cpufreq. Seen on the Surface Laptop 4
+AMD (Ryzen 5 4680U, Renoir), whose _CPC hard-codes auto_sel on.
+
+Skip the write when the value already matches the mode. Active and guided
+mode want auto_sel on and can now initialise on such firmware. Passive
+mode wants it off, so it still fails there, as it must.
+
+Local to linux-cachyos-surface-latest; not from linux-surface. See STATUS.
+---
+--- a/drivers/cpufreq/amd-pstate.c
++++ b/drivers/cpufreq/amd-pstate.c
+@@ -540,6 +540,15 @@
+ 		return 0;
+ 	}
+ 
++	/*
++	 * Some firmware declares auto_sel in _CPC as a read-only integer, so
++	 * the write below fails with -EOPNOTSUPP even when the register already
++	 * holds the wanted value, and init then fails in every mode. Only write
++	 * when the value actually has to change.
++	 */
++	if (auto_sel == (cppc_state != AMD_PSTATE_PASSIVE))
++		return 0;
++
+ 	ret = cppc_set_auto_sel(cpudata->cpu,
+ 			(cppc_state == AMD_PSTATE_PASSIVE) ? 0 : 1);
+ 
