@@ -17,7 +17,9 @@ release**, even ahead of upstream support:
 - Either way it also carries one local fix that is not from linux-surface,
   [`amd-pstate-readonly-auto-sel.patch`](pkg/linux-cachyos-surface-latest/amd-pstate-readonly-auto-sel.patch),
   which lets `amd-pstate` load on firmware that declares CPPC `auto_sel`
-  read-only (Surface Laptop 4 AMD). It is skipped, not fatal, if it stops
+  read-only. On the Surface Laptop 4 AMD it works together with the kernel
+  parameter `amd_pstate=guided` (the firmware has no EPP, so the default
+  active mode cannot work there). It is skipped, not fatal, if it stops
   applying.
 
 > **Prefer only kernel versions linux-surface officially supports?** Use

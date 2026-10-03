@@ -108,10 +108,8 @@ date=2026-09-18
 # v6.12 and v6.15 and is unchanged in torvalds master as of 2026-10-01.
 #
 # The patch skips the write when auto_sel already holds the mode's value. On
-# this firmware that lets active (default) and guided mode initialise; passive
-# needs auto_sel off and still cannot work here. Whether active then succeeds
-# depends on the firmware's EPP register, which is unknown -- if active still
-# fails, boot with amd_pstate=guided.
+# this firmware that gets active and guided mode past init_perf; passive needs
+# auto_sel off and still cannot work here.
 #
 # Checked before committing:
 #   - Generated with diff -U3 against CachyOS's own amd-pstate.c at tag
@@ -126,6 +124,18 @@ date=2026-09-18
 #     optional cpufreq fix must never block a kernel update. Both paths were
 #     run under set -eE with an ERR trap, as makepkg runs prepare().
 #
-# NOT build- or boot-validated yet. If amd-pstate loads, scaling_driver reads
-# amd-pstate or amd-pstate-epp; if the patch ever stops applying, look for the
-# ":: amd-pstate:" line in the build log and regenerate it with diff -U3.
+# RESULT 2026-10-03, 7.2.8-2-cachyos-surface-latest on the Surface Laptop 4 AMD:
+#   - Default (active/EPP) mode: the auto_sel error is gone, but every CPU now
+#     fails with -524 (ENOTSUPP) from cppc_set_epp_perf(). This firmware has no
+#     writable EPP register, so active mode can never work here. Not a bug.
+#   - amd_pstate=guided WORKS: scaling_driver=amd-pstate, status=guided,
+#     schedutil, cpuinfo_min_freq ~409 MHz, max ~4009 MHz with boost; cores
+#     move continuously between 1116 MHz (lowest_nonlinear, the default floor)
+#     and 4 GHz. No errors in the kernel log beyond the usual "CPPC feature is
+#     supported but currently disabled by the BIOS" notice. Idle package power
+#     3-10 W, same as under acpi-cpufreq.
+#   So the Surface Laptop 4 AMD needs BOTH this patch and amd_pstate=guided on
+#   the kernel command line. Without the parameter it falls back to
+#   acpi-cpufreq exactly as before, so the patch is harmless for everyone else.
+# If the patch ever stops applying, look for the ":: amd-pstate:" line in the
+# build log and regenerate it with diff -U3.
