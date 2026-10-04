@@ -94,26 +94,25 @@ index 080b688bb..027c3c51b 100644
  	 * Do not enumerate devices with enumeration_by_parent flag set as
  	 * they will be enumerated by their respective parents.
 diff --git a/drivers/bluetooth/btusb.c b/drivers/bluetooth/btusb.c
-index 0e1357f67..ad54f471e 100644
 --- a/drivers/bluetooth/btusb.c
 +++ b/drivers/bluetooth/btusb.c
-@@ -68,6 +68,7 @@ static struct usb_driver btusb_driver;
+@@ -69,6 +69,7 @@ static struct usb_driver btusb_driver;
  #define BTUSB_ACTIONS_SEMI		BIT(27)
  #define BTUSB_BARROT			BIT(28)
  #define BTUSB_BROKEN_EXT_SCAN		BIT(29)
 +#define BTUSB_LOWER_LESCAN_INTERVAL	BIT(30)
  
  static const struct usb_device_id btusb_table[] = {
- 	/* Generic Bluetooth USB device */
-@@ -472,6 +473,7 @@ static const struct usb_device_id quirks_table[] = {
+ 	/*
+@@ -483,6 +484,7 @@ static const struct usb_device_id quirks
  	{ USB_DEVICE(0x1286, 0x2044), .driver_info = BTUSB_MARVELL },
  	{ USB_DEVICE(0x1286, 0x2046), .driver_info = BTUSB_MARVELL },
  	{ USB_DEVICE(0x1286, 0x204e), .driver_info = BTUSB_MARVELL },
 +	{ USB_DEVICE(0x1286, 0x204c), .driver_info = BTUSB_LOWER_LESCAN_INTERVAL },
  
- 	/* Intel Bluetooth devices */
- 	{ USB_DEVICE(0x8087, 0x0025), .driver_info = BTUSB_INTEL_COMBINED },
-@@ -4241,6 +4243,19 @@ static int btusb_probe(struct usb_interface *intf,
+ 	/*
+ 	 * NXP IW610 BT interfaces (Marvell-lineage silicon, same quirk as
+@@ -4362,6 +4364,19 @@ static int btusb_probe(struct usb_interf
  	if (id->driver_info & BTUSB_MARVELL)
  		hdev->set_bdaddr = btusb_set_bdaddr_marvell;
  
@@ -177,10 +176,9 @@ index d2579e299..ca686a05a 100644
 +obj-$(CONFIG_HID_IPTS)          += ipts/
 +obj-$(CONFIG_HID_ITHC)          += ithc/
 diff --git a/drivers/hid/hid-multitouch.c b/drivers/hid/hid-multitouch.c
-index eeab0b6e3..9b87bf91e 100644
 --- a/drivers/hid/hid-multitouch.c
 +++ b/drivers/hid/hid-multitouch.c
-@@ -35,7 +35,10 @@
+@@ -36,7 +36,10 @@
  #include <linux/device.h>
  #include <linux/hid.h>
  #include <linux/module.h>
@@ -191,7 +189,7 @@ index eeab0b6e3..9b87bf91e 100644
  #include <linux/input/mt.h>
  #include <linux/jiffies.h>
  #include <linux/string.h>
-@@ -48,6 +51,7 @@ MODULE_DESCRIPTION("HID multitouch panels");
+@@ -49,6 +52,7 @@ MODULE_DESCRIPTION("HID multitouch panel
  MODULE_LICENSE("GPL");
  
  #include "hid-ids.h"
@@ -199,17 +197,17 @@ index eeab0b6e3..9b87bf91e 100644
  
  #include "hid-haptic.h"
  
-@@ -78,6 +82,9 @@ MODULE_LICENSE("GPL");
- #define MT_QUIRK_APPLE_TOUCHBAR		BIT(23)
+@@ -80,6 +84,9 @@ MODULE_LICENSE("GPL");
  #define MT_QUIRK_YOGABOOK9I		BIT(24)
  #define MT_QUIRK_KEEP_LATENCY_ON_CLOSE	BIT(25)
-+#define MT_QUIRK_SKIP_MODESET_ON_HW_OPEN_CLOSE  BIT(26)
-+#define MT_QUIRK_HAS_TYPE_COVER_BACKLIGHT	BIT(27)
-+#define MT_QUIRK_HAS_TYPE_COVER_TABLET_MODE_SWITCH	BIT(28)
+ #define MT_QUIRK_IGNORE_FEATURE_ID_MISMATCH	BIT(26)
++#define MT_QUIRK_SKIP_MODESET_ON_HW_OPEN_CLOSE  BIT(27)
++#define MT_QUIRK_HAS_TYPE_COVER_BACKLIGHT	BIT(28)
++#define MT_QUIRK_HAS_TYPE_COVER_TABLET_MODE_SWITCH	BIT(29)
  
  #define MT_INPUTMODE_TOUCHSCREEN	0x02
  #define MT_INPUTMODE_TOUCHPAD		0x03
-@@ -85,6 +92,10 @@ MODULE_LICENSE("GPL");
+@@ -87,6 +94,10 @@ MODULE_LICENSE("GPL");
  #define MT_BUTTONTYPE_CLICKPAD		0
  #define MT_BUTTONTYPE_PRESSUREPAD	1
  
@@ -229,16 +227,16 @@ index eeab0b6e3..9b87bf91e 100644
  };
  
  static void mt_post_parse_default_settings(struct mt_device *td,
-@@ -236,6 +249,8 @@ static void mt_post_parse(struct mt_device *td, struct mt_application *app);
- #define MT_CLS_APPLE_TOUCHBAR			0x0114
+@@ -237,6 +250,8 @@ static void mt_post_parse(struct mt_devi
  #define MT_CLS_YOGABOOK9I			0x0115
  #define MT_CLS_EGALAX_P80H84			0x0116
-+#define MT_CLS_SURFACE_TOUCHPAD                0x0117
-+#define MT_CLS_WIN_8_MS_SURFACE_TYPE_COVER	0x0118
+ #define MT_CLS_ASUS_ROG_Z13_FOLIO		0x0117
++#define MT_CLS_SURFACE_TOUCHPAD                0x0118
++#define MT_CLS_WIN_8_MS_SURFACE_TYPE_COVER	0x0119
  #define MT_CLS_SIS				0x0457
  
  #define MT_DEFAULT_MAXCONTACT	10
-@@ -455,6 +470,21 @@ static const struct mt_class mt_classes[] = {
+@@ -469,6 +484,21 @@ static const struct mt_class mt_classes[
  			MT_QUIRK_IGNORE_DUPLICATES |
  			MT_QUIRK_CONTACT_CNT_ACCURATE,
  	},
@@ -260,7 +258,7 @@ index eeab0b6e3..9b87bf91e 100644
  	{ }
  };
  
-@@ -1489,6 +1519,9 @@ static int mt_input_mapping(struct hid_device *hdev, struct hid_input *hi,
+@@ -1519,6 +1549,9 @@ static int mt_input_mapping(struct hid_d
  	    field->application != HID_CP_CONSUMER_CONTROL &&
  	    field->application != HID_GD_WIRELESS_RADIO_CTLS &&
  	    field->application != HID_GD_SYSTEM_MULTIAXIS &&
@@ -270,7 +268,7 @@ index eeab0b6e3..9b87bf91e 100644
  	    !(field->application == HID_VD_ASUS_CUSTOM_MEDIA_KEYS &&
  	      application->quirks & MT_QUIRK_ASUS_CUSTOM_UP))
  		return -1;
-@@ -1516,6 +1549,21 @@ static int mt_input_mapping(struct hid_device *hdev, struct hid_input *hi,
+@@ -1546,6 +1579,21 @@ static int mt_input_mapping(struct hid_d
  		return 1;
  	}
  
@@ -292,7 +290,7 @@ index eeab0b6e3..9b87bf91e 100644
  	if (rdata->is_mt_collection)
  		return mt_touch_input_mapping(hdev, hi, field, usage, bit, max,
  					      application);
-@@ -1542,6 +1590,7 @@ static int mt_input_mapped(struct hid_device *hdev, struct hid_input *hi,
+@@ -1572,6 +1620,7 @@ static int mt_input_mapped(struct hid_de
  {
  	struct mt_device *td = hid_get_drvdata(hdev);
  	struct mt_report_data *rdata;
@@ -300,7 +298,7 @@ index eeab0b6e3..9b87bf91e 100644
  
  	rdata = mt_find_report_data(td, field->report);
  	if (rdata && rdata->is_mt_collection) {
-@@ -1549,6 +1598,19 @@ static int mt_input_mapped(struct hid_device *hdev, struct hid_input *hi,
+@@ -1579,6 +1628,19 @@ static int mt_input_mapped(struct hid_de
  		return -1;
  	}
  
@@ -320,7 +318,7 @@ index eeab0b6e3..9b87bf91e 100644
  	/* let hid-core decide for the others */
  	return 0;
  }
-@@ -1558,11 +1620,21 @@ static int mt_event(struct hid_device *hid, struct hid_field *field,
+@@ -1588,11 +1650,21 @@ static int mt_event(struct hid_device *h
  {
  	struct mt_device *td = hid_get_drvdata(hid);
  	struct mt_report_data *rdata;
@@ -342,7 +340,7 @@ index eeab0b6e3..9b87bf91e 100644
  	return 0;
  }
  
-@@ -1777,6 +1849,42 @@ static void mt_post_parse(struct mt_device *td, struct mt_application *app)
+@@ -1949,6 +2021,42 @@ static void mt_post_parse(struct mt_devi
  		app->quirks &= ~MT_QUIRK_CONTACT_CNT_ACCURATE;
  }
  
@@ -385,7 +383,7 @@ index eeab0b6e3..9b87bf91e 100644
  static int mt_input_configured(struct hid_device *hdev, struct hid_input *hi)
  {
  	struct mt_device *td = hid_get_drvdata(hdev);
-@@ -1835,6 +1943,13 @@ static int mt_input_configured(struct hid_device *hdev, struct hid_input *hi)
+@@ -2007,6 +2115,13 @@ static int mt_input_configured(struct hi
  		/* force BTN_STYLUS to allow tablet matching in udev */
  		__set_bit(BTN_STYLUS, hi->input->keybit);
  		break;
@@ -399,7 +397,7 @@ index eeab0b6e3..9b87bf91e 100644
  	default:
  		suffix = "UNKNOWN";
  		break;
-@@ -1945,6 +2060,46 @@ static void mt_expired_timeout(struct timer_list *t)
+@@ -2117,6 +2232,46 @@ static void mt_expired_timeout(struct ti
  	clear_bit_unlock(MT_IO_FLAGS_RUNNING, &td->mt_io_flags);
  }
  
@@ -446,7 +444,7 @@ index eeab0b6e3..9b87bf91e 100644
  static int mt_probe(struct hid_device *hdev, const struct hid_device_id *id)
  {
  	int ret, i;
-@@ -1973,6 +2128,9 @@ static int mt_probe(struct hid_device *hdev, const struct hid_device_id *id)
+@@ -2145,6 +2300,9 @@ static int mt_probe(struct hid_device *h
  	td->inputmode_value = MT_INPUTMODE_TOUCHSCREEN;
  	hid_set_drvdata(hdev, td);
  
@@ -456,7 +454,7 @@ index eeab0b6e3..9b87bf91e 100644
  	INIT_LIST_HEAD(&td->applications);
  	INIT_LIST_HEAD(&td->reports);
  
-@@ -2011,8 +2169,10 @@ static int mt_probe(struct hid_device *hdev, const struct hid_device_id *id)
+@@ -2183,8 +2341,10 @@ static int mt_probe(struct hid_device *h
  	timer_setup(&td->release_timer, mt_expired_timeout, 0);
  
  	ret = hid_parse(hdev);
@@ -468,7 +466,7 @@ index eeab0b6e3..9b87bf91e 100644
  
  	if (mtclass->name == MT_CLS_APPLE_TOUCHBAR &&
  	    !hid_find_field(hdev, HID_INPUT_REPORT,
-@@ -2026,8 +2186,10 @@ static int mt_probe(struct hid_device *hdev, const struct hid_device_id *id)
+@@ -2198,8 +2358,10 @@ static int mt_probe(struct hid_device *h
  		hdev->quirks |= HID_QUIRK_NOGET;
  
  	ret = hid_hw_start(hdev, HID_CONNECT_DEFAULT);
@@ -480,7 +478,7 @@ index eeab0b6e3..9b87bf91e 100644
  
  	ret = sysfs_create_group(&hdev->dev.kobj, &mt_attribute_group);
  	if (ret)
-@@ -2066,13 +2228,24 @@ static int mt_suspend(struct hid_device *hdev, pm_message_t state)
+@@ -2238,13 +2400,24 @@ static int mt_suspend(struct hid_device
  
  static int mt_reset_resume(struct hid_device *hdev)
  {
@@ -505,7 +503,7 @@ index eeab0b6e3..9b87bf91e 100644
  	/* Some Elan legacy devices require SET_IDLE to be set on resume.
  	 * It should be safe to send it to other devices too.
  	 * Tested on 3M, Stantum, Cypress, Zytronic, eGalax, and Elan panels. */
-@@ -2081,13 +2254,33 @@ static int mt_resume(struct hid_device *hdev)
+@@ -2253,13 +2426,33 @@ static int mt_resume(struct hid_device *
  
  	mt_set_modes(hdev, HID_LATENCY_NORMAL, TOUCHPAD_REPORT_ALL);
  
@@ -539,7 +537,7 @@ index eeab0b6e3..9b87bf91e 100644
  	timer_delete_sync(&td->release_timer);
  
  	sysfs_remove_group(&hdev->dev.kobj, &mt_attribute_group);
-@@ -2096,6 +2289,17 @@ static void mt_remove(struct hid_device *hdev)
+@@ -2268,6 +2461,17 @@ static void mt_remove(struct hid_device
  
  static void mt_on_hid_hw_open(struct hid_device *hdev)
  {
@@ -557,7 +555,7 @@ index eeab0b6e3..9b87bf91e 100644
  	mt_set_modes(hdev, HID_LATENCY_NORMAL, TOUCHPAD_REPORT_ALL);
  }
  
-@@ -2103,6 +2307,15 @@ static void mt_on_hid_hw_close(struct hid_device *hdev)
+@@ -2275,6 +2479,15 @@ static void mt_on_hid_hw_close(struct hi
  {
  	struct mt_device *td = hid_get_drvdata(hdev);
  
@@ -573,7 +571,7 @@ index eeab0b6e3..9b87bf91e 100644
  	if (td->mtclass.quirks & MT_QUIRK_KEEP_LATENCY_ON_CLOSE)
  		mt_set_modes(hdev, HID_LATENCY_NORMAL, TOUCHPAD_REPORT_NONE);
  	else
-@@ -2555,6 +2768,16 @@ static const struct hid_device_id mt_devices[] = {
+@@ -2727,6 +2940,16 @@ static const struct hid_device_id mt_dev
  		HID_USB_DEVICE(USB_VENDOR_ID_APPLE,
  			USB_DEVICE_ID_APPLE_TOUCHBAR_DISPLAY) },
  

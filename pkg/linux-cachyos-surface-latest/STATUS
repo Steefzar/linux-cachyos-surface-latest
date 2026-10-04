@@ -139,3 +139,42 @@ date=2026-10-04
 #   acpi-cpufreq exactly as before, so the patch is harmless for everyone else.
 # If the patch ever stops applying, look for the ":: amd-pstate:" line in the
 # build log and regenerate it with diff -U3.
+
+# 2026-10-04 -- context+renumber refresh for cachyos-7.2.9-2. No semantic change.
+#
+# The 09:23 run aborted with one reject, drivers/hid/hid-multitouch.c, because
+# upstream had taken both slots our hunks were using:
+#   - MT_QUIRK_IGNORE_FEATURE_ID_MISMATCH now owns BIT(26), which was ours for
+#     MT_QUIRK_SKIP_MODESET_ON_HW_OPEN_CLOSE. Ours moves to BIT(27), and
+#     MT_QUIRK_HAS_TYPE_COVER_{BACKLIGHT,TABLET_MODE_SWITCH} to BIT(28)/BIT(29).
+#   - MT_CLS_ASUS_ROG_Z13_FOLIO now owns 0x0117. MT_CLS_SURFACE_TOUCHPAD moves
+#     to 0x0118, MT_CLS_WIN_8_MS_SURFACE_TYPE_COVER to 0x0119.
+#   Both blocks are inserted after upstream's new line so the sequences stay
+#   ordered. The reject was the safety net working: a fuzzed apply would have
+#   compiled two different macros with the same value, exactly as the 7.2.4
+#   BTUSB break would have.
+#
+# drivers/bluetooth/btusb.c needed regenerating too, and that one the build did
+# NOT report. Upstream added an NXP IW610 block immediately after both of our
+# insertion points, so hunks 1 and 2 applied only "with fuzz 1" and "fuzz 2"
+# under default tolerance, and FAILED under -F0. No value changed there: BIT(30)
+# and the 0x204c entry are still free and still land after BIT(29) and the
+# 0x204e line respectively; only the trailing context moved. Checking for fuzz
+# rather than only for failures is what caught it.
+#
+# Both sections were regenerated with diff -U3 -p against a real source tree,
+# not renumbered by hand.
+#
+# Checked before pushing, against a pristine cachyos-7.2.9-2 with
+# dkms-clang.patch applied first exactly as prepare() does:
+#   - 92 files, 0 failures, 0 rejects, 0 hunks needing fuzz, 30 applied at an
+#     offset; byte-identical result under patch -F0.
+#   - amd-pstate-readonly-auto-sel.patch still passes its own -F0 gate, so the
+#     guided-mode fix monketop depends on will still be applied.
+#   - No duplicate #define introduced in any of the 92 patched files. The three
+#     names defined twice (XLF56, MEI_ME_PM_OPS, PCI_PM_OPS_PTR) are upstream
+#     #ifdef/#else pairs and are defined twice in the pristine tree as well.
+#
+# NOT proven: nothing here was compiled or booted. validated_against stays at
+# cachyos-7.2.8-1 until a real build succeeds and the dashboard's boot
+# confirmation says the result came up.
