@@ -1,0 +1,68 @@
+diff --git a/drivers/platform/surface/surface_aggregator_registry.c b/drivers/platform/surface/surface_aggregator_registry.c
+index e0c07e5..94072b2 100644
+--- a/drivers/platform/surface/surface_aggregator_registry.c
++++ b/drivers/platform/surface/surface_aggregator_registry.c
+@@ -51,6 +51,12 @@ static const struct software_node ssam_node_hub_base = {
+ 	.parent = &ssam_node_root,
+ };
+ 
++/* Real-time clock kept by the EC (rtc-surface). */
++static const struct software_node ssam_node_rtc = {
++	.name = "ssam:01:01:01:00:00",
++	.parent = &ssam_node_root,
++};
++
+ /* AC adapter. */
+ static const struct software_node ssam_node_bat_ac = {
+ 	.name = "ssam:01:02:01:01:01",
+@@ -252,6 +258,7 @@ static const struct software_node *ssam_node_group_sb3[] = {
+ /* Devices for Surface Laptop 3 and 4. */
+ static const struct software_node *ssam_node_group_sl3[] = {
+ 	&ssam_node_root,
++	&ssam_node_rtc,
+ 	&ssam_node_bat_ac,
+ 	&ssam_node_bat_main,
+ 	&ssam_node_tmp_perf_profile,
+diff --git a/drivers/rtc/rtc-surface.c b/drivers/rtc/rtc-surface.c
+index f6c17c4..a334bed 100644
+--- a/drivers/rtc/rtc-surface.c
++++ b/drivers/rtc/rtc-surface.c
+@@ -10,6 +10,7 @@
+ #include <linux/module.h>
+ #include <linux/rtc.h>
+ #include <linux/slab.h>
++#include <linux/timekeeping.h>
+ #include <linux/types.h>
+ 
+ #include <linux/surface_aggregator/device.h>
+@@ -107,6 +108,22 @@ static void surface_rtc_remove(struct ssam_device *sdev)
+ 	/* Device-managed allocations take care of everything... */
+ }
+ 
++/*
++ * The firmware reloads the CMOS RTC from this EC clock at every boot, and the
++ * NTP 11-minute mode only ever writes the CMOS RTC. Hand the system time to the
++ * EC on the way down so the next boot starts on it rather than on whatever the
++ * EC last held (e.g. local time written by Windows).
++ */
++static void surface_rtc_shutdown(struct device *dev)
++{
++	struct surface_rtc *srtc = dev_get_drvdata(dev);
++	int status;
++
++	status = ssam_rtc_set_unix_time(srtc, (u32)ktime_get_real_seconds());
++	if (status)
++		dev_warn(dev, "failed to write system time to EC: %d\n", status);
++}
++
+ static const struct ssam_device_id surface_rtc_match[] = {
+ 	{ SSAM_SDEV(SAM, SAM, 0x00, 0x00) },
+ 	{ },
+@@ -120,6 +137,7 @@ static struct ssam_device_driver surface_rtc_driver = {
+ 	.driver = {
+ 		.name = "surface_rtc",
+ 		.probe_type = PROBE_PREFER_ASYNCHRONOUS,
++		.shutdown = surface_rtc_shutdown,
+ 	},
+ };
+ module_ssam_device_driver(surface_rtc_driver);

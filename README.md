@@ -21,6 +21,13 @@ release**, even ahead of upstream support:
   parameter `amd_pstate=guided` (the firmware has no EPP, so the default
   active mode cannot work there). It is skipped, not fatal, if it stops
   applying.
+- It carries a second local fix,
+  [`surface-rtc-ec-clock.patch`](pkg/linux-cachyos-surface-latest/surface-rtc-ec-clock.patch),
+  which lets linux-surface's `rtc-surface` driver bind on the Surface Laptop
+  3/4 and write the system time to the EC clock at shutdown. The firmware
+  reloads the CMOS clock from the EC at every boot, so without it the laptop
+  boots on whatever time the EC last held. Also skipped, not fatal, if it
+  stops applying.
 
 > **Prefer only kernel versions linux-surface officially supports?** Use
 > the sibling package:

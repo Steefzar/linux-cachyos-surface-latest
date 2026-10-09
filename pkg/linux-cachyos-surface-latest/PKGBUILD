@@ -201,7 +201,7 @@ _tagrel=1
 # also the release tag name.
 _srcname=cachyos-${_major}.${_minor}-${_tagrel}
 pkgdesc='CachyOS kernel (EEVDF/BORE + LTO + Surface patches), tracking the newest CachyOS release ahead of linux-surface official support when needed'
-pkgrel=2
+pkgrel=3
 _kernver="$pkgver-$pkgrel"
 _kernuname="${pkgver}-${_pkgsuffix}"
 
@@ -236,6 +236,7 @@ source=(
     "config"
     "rebased.patch"
     "amd-pstate-readonly-auto-sel.patch"
+    "surface-rtc-ec-clock.patch"
     "surface.config"
     "linux-surface::git+${_surface_repo_url}"
     )
@@ -314,6 +315,7 @@ prepare() {
         [[ "$src" == "${_patchsource}"/misc/nvidia/*.patch ]] && continue
         [[ "$src" == "rebased.patch" ]] && continue
         [[ "$src" == "amd-pstate-readonly-auto-sel.patch" ]] && continue
+        [[ "$src" == "surface-rtc-ec-clock.patch" ]] && continue
         src="${src##*/}"
         src="${src%.zst}"
         [[ $src = *.patch ]] || continue
@@ -355,6 +357,19 @@ prepare() {
         fi
         echo "Setting config from bundled surface.config..."
         ./scripts/kconfig/merge_config.sh -m ../config ../surface.config
+    fi
+
+    # Local fix, not from linux-surface (see STATUS): gives rtc-surface a
+    # device on Surface Laptop 3/4 and has it write the system time to the EC
+    # clock at shutdown, because the firmware reloads the CMOS RTC from that
+    # clock at every boot. Applied after the Surface patches since it edits
+    # rtc-surface.c, which they add. Optional for the same reason as
+    # amd-pstate above.
+    if patch -Np1 -F0 --dry-run < ../surface-rtc-ec-clock.patch > /dev/null; then
+        echo ":: surface-rtc: applying surface-rtc-ec-clock.patch"
+        patch -Np1 -F0 < ../surface-rtc-ec-clock.patch
+    else
+        echo ":: surface-rtc: surface-rtc-ec-clock.patch does not apply to ${_srcname}, building without it (see STATUS)"
     fi
 
     ### Select CPU optimization

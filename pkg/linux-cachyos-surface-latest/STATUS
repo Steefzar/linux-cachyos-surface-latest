@@ -178,3 +178,59 @@ date=2026-10-04
 # NOT proven: nothing here was compiled or booted. validated_against stays at
 # cachyos-7.2.8-1 until a real build succeeds and the dashboard's boot
 # confirmation says the result came up.
+
+# 2026-10-09 -- second LOCAL patch, independent of the linux-surface rebase:
+# surface-rtc-ec-clock.patch. pkgrel bumped 2 -> 3 so the builder rebuilds
+# cachyos-7.2.9-2 with it.
+#
+# Why: on the Surface Laptop 4 AMD the clock comes up on LOCAL time at every
+# boot (2 h fast in CEST), though Linux keeps the CMOS RTC on UTC all session:
+#
+#   rtc_cmos rtc_cmos: setting system clock to 2026-10-09T11:33:29 UTC
+#   systemd-timesyncd: Initial clock synchronization to ... 11:37:06 CEST
+#
+# Anything that runs before timesyncd syncs sees that, and it broke WireGuard:
+# a handshake sent with the clock 2 h ahead stores a future timestamp on the
+# peer, which then drops every later handshake as a replay until real time
+# catches up.
+#
+# Cause: the firmware reloads the CMOS RTC at POST from the EC's own clock, so
+# nothing written to rtc0 survives a power cycle (linux-surface #415, #1658,
+# #1497, #2251). The ACPI clock device that should reach the EC, \_SB.SRTC
+# (ACPI000E, _SUB MSHW0214), declares get/set-time support in _GCP but has no
+# _GRT/_SRT (checked in linux-surface/acpidumps surface_laptop_4_amd), so
+# acpi-tad's rtc1 returns EIO on every access. linux-surface's rtc-surface
+# driver talks to the EC clock directly (SAM TC 0x01 TID 0x01, CID 0x10 get /
+# 0x0f set, le32 unix time) and IS built here (surface.config sets
+# RTC_DRV_SURFACE=m, rebased.patch adds the file), but no registry group
+# instantiates its device, ssam:01:01:01:00:00, so it never binds.
+#
+# The patch:
+#   - surface_aggregator_registry.c: add ssam_node_rtc to ssam_node_group_sl3
+#     (Surface Laptop 3 and 4; MSHW0110 is the SL4 AMD). rtc-surface then
+#     binds and the EC clock shows up as an extra /dev/rtcN.
+#   - rtc-surface.c: add a driver .shutdown that writes ktime_get_real_seconds()
+#     to the EC. The kernel's 11-minute NTP sync only writes
+#     RTC_SYSTOHC_DEVICE (rtc0, the CMOS), so without this the EC never learns
+#     the corrected time. The SSAM bus has no .shutdown of its own, so the
+#     driver core calls this one, and devices probed later shut down first, so
+#     it runs while the SAM controller is still up.
+#
+# Checked before committing:
+#   - Generated with diff -U3 against CachyOS's own files at tag
+#     cachyos-7.2.9-2 with rebased.patch's registry and rtc-surface hunks
+#     applied. Applies with -F0, no fuzz, no offset.
+#   - Applied AFTER the Surface patch block in prepare(), because it edits a
+#     file rebased.patch creates, and so it can never make rebased.patch fail.
+#     -F0 dry-run gate as for amd-pstate: if it stops applying, prepare()
+#     prints ":: surface-rtc: ... building without it" and carries on. Both
+#     paths were run under set -eE with an ERR trap, as makepkg runs prepare().
+#   - Both files compiled with clang (LLVM=1, W=1) against the installed
+#     7.2.9-2-cachyos-surface-latest headers, patched and unpatched: no
+#     errors, no warnings.
+#
+# NOT build- or boot-validated yet. After booting it, check that the EC clock
+# is a device: grep -l surface /sys/class/rtc/rtc*/name. After the SECOND boot
+# (the first shutdown is what writes the EC), check that
+# journalctl -b | grep 'setting system clock' matches real UTC to within
+# seconds instead of being a timezone offset ahead.
