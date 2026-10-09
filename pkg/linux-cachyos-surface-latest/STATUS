@@ -249,9 +249,21 @@ date=2026-10-04
 #     7.2.9-2-cachyos-surface-latest headers: no errors, no warnings; modpost
 #     resolves efi and the SSAM symbols.
 #
-# NOT build- or boot-validated yet. After booting it:
+# VALIDATED 2026-10-09 on monketop: built and booted as 7.2.9-3 (from
+# d936637). surface_rtc binds as rtc2 and logs "EC clock kept 480 min ahead of
+# UTC (firmware TimeZone)". CMOS at boot vs real UTC (from timesyncd's first
+# sync), per boot:
+#
+#   7.2.9-2                          +7021 s   (1h57m fast, the bug)
+#   7.2.9-3, first boot              +7021 s   (EC not corrected yet; its
+#                                              shutdown is what writes it)
+#   7.2.9-3, second boot               -1.6 s
+#
+# So the firmware's rule (CMOS at POST = EC - TimeZone) holds, and each
+# shutdown now hands the next boot the right time. -1.6 s is the CMOS RTC's
+# whole-second resolution plus the shutdown-to-POST gap.
+#
+# To check it again:
 #   journalctl -b -k | grep -E 'EC clock kept|setting system clock'
-# should show "EC clock kept 480 min ahead of UTC". After the SECOND boot (the
-# first shutdown is what corrects the EC), 'setting system clock' should match
-# real UTC to within seconds instead of being ~2 h ahead. If it is ~8 h off in
-# either direction, the firmware's rule is not EC - TimeZone after all.
+# If 'setting system clock' is ever ~8 h off in either direction after a
+# shutdown on this kernel, the firmware's TimeZone rule has changed.
