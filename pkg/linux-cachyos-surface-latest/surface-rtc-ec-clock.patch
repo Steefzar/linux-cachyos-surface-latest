@@ -1,3 +1,15 @@
+From: Stefan <104927860+Steefzar@users.noreply.github.com>
+Subject: [PATCH] platform/surface: bind rtc-surface and keep the EC clock
+ offset by the firmware's TimeZone, so the boot clock is UTC
+
+On Surface Laptop 3/4 the firmware rebuilds the CMOS RTC at POST from the EC
+clock minus the TimeZone it keeps in EDK2 PcRtc's "RTC" EFI variable. No
+registry group instantiates ssam:01:01:01:00:00, so rtc-surface never binds
+and nothing maintains that clock -- the machine then boots 1h57m fast until
+timesyncd corrects it, which is long enough to break a WireGuard handshake.
+Register the node for Laptop 3/4 and offset reads and writes by the TimeZone.
+Measurements, reasoning and how to regenerate this patch are in STATUS.
+
 diff --git a/drivers/platform/surface/surface_aggregator_registry.c b/drivers/platform/surface/surface_aggregator_registry.c
 index e0c07e5..94072b2 100644
 --- a/drivers/platform/surface/surface_aggregator_registry.c
