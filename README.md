@@ -25,9 +25,9 @@ release**, even ahead of upstream support:
   [`surface-rtc-ec-clock.patch`](pkg/linux-cachyos-surface-latest/surface-rtc-ec-clock.patch),
   which lets linux-surface's `rtc-surface` driver bind on the Surface Laptop
   3/4 and write the system time to the EC clock at shutdown. The firmware
-  reloads the CMOS clock from the EC at every boot, so without it the laptop
-  boots on whatever time the EC last held. Also skipped, not fatal, if it
-  stops applying.
+  rebuilds the CMOS clock from the EC at every boot (EC minus its stored
+  TimeZone), so without it the laptop boots on whatever time the EC last
+  held. Also skipped, not fatal, if it stops applying.
 
 > **Prefer only kernel versions linux-surface officially supports?** Use
 > the sibling package:

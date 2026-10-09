@@ -181,42 +181,62 @@ date=2026-10-04
 
 # 2026-10-09 -- second LOCAL patch, independent of the linux-surface rebase:
 # surface-rtc-ec-clock.patch. pkgrel bumped 2 -> 3 so the builder rebuilds
-# cachyos-7.2.9-2 with it.
+# cachyos-7.2.9-2 with it. (First pushed as 2abd055 on a wrong assumption,
+# corrected the same day before any build; see "The firmware's rule" below.)
 #
-# Why: on the Surface Laptop 4 AMD the clock comes up on LOCAL time at every
-# boot (2 h fast in CEST), though Linux keeps the CMOS RTC on UTC all session:
+# Why: on the Surface Laptop 4 AMD the clock comes up 1h57m fast at every
+# boot, though Linux keeps the CMOS RTC on UTC all session:
 #
 #   rtc_cmos rtc_cmos: setting system clock to 2026-10-09T11:33:29 UTC
-#   systemd-timesyncd: Initial clock synchronization to ... 11:37:06 CEST
+#   (real UTC at that moment, from timesyncd's first sync: 09:36:27)
 #
 # Anything that runs before timesyncd syncs sees that, and it broke WireGuard:
-# a handshake sent with the clock 2 h ahead stores a future timestamp on the
-# peer, which then drops every later handshake as a replay until real time
-# catches up.
+# a handshake sent with the clock ahead stores a future timestamp on the peer,
+# which then drops every later handshake as a replay until real time catches
+# up.
 #
-# Cause: the firmware reloads the CMOS RTC at POST from the EC's own clock, so
-# nothing written to rtc0 survives a power cycle (linux-surface #415, #1658,
+# Cause: nothing written to rtc0 survives a power cycle; the firmware rebuilds
+# the CMOS RTC at POST from the EC's own clock (linux-surface #415, #1658,
 # #1497, #2251). The ACPI clock device that should reach the EC, \_SB.SRTC
 # (ACPI000E, _SUB MSHW0214), declares get/set-time support in _GCP but has no
-# _GRT/_SRT (checked in linux-surface/acpidumps surface_laptop_4_amd), so
-# acpi-tad's rtc1 returns EIO on every access. linux-surface's rtc-surface
-# driver talks to the EC clock directly (SAM TC 0x01 TID 0x01, CID 0x10 get /
-# 0x0f set, le32 unix time) and IS built here (surface.config sets
-# RTC_DRV_SURFACE=m, rebased.patch adds the file), but no registry group
-# instantiates its device, ssam:01:01:01:00:00, so it never binds.
+# _GRT/_SRT (linux-surface/acpidumps surface_laptop_4_amd), so acpi-tad's rtc1
+# returns EIO on every access. linux-surface's rtc-surface driver reaches the
+# EC clock over SAM (TC 0x01 TID 0x01, CID 0x10 get / 0x0f set, le32 unix
+# time) and IS built here (surface.config sets RTC_DRV_SURFACE=m, rebased.patch
+# adds the file), but no registry group instantiates its device,
+# ssam:01:01:01:00:00, so it never binds.
+#
+# The firmware's rule, measured on monketop (read through
+# surface_aggregator_cdev):
+#
+#   EC clock                       = real UTC + 9h57m02s
+#   EFI var RTC-378d7b65-... (EDK2 PcRtc) TimeZone = 480 min, Daylight 0
+#   CMOS at POST, two boots        = real UTC + 1h57m02s / + 1h57m01s
+#
+#   => CMOS_at_POST = EC - TimeZone, to the second.
+#
+# So the EC is not "the time": the firmware subtracts its TimeZone from it.
+# (Windows, set to Swedish local time, wrote the EC through the firmware,
+# which added 480 min -> EC ~10 h ahead; drifted 3 min since.) The 2 h CEST
+# offset this first looked like was a coincidence. Writing plain UTC to the EC
+# -- what 2abd055 did -- would have made every boot come up 8 h BEHIND.
 #
 # The patch:
 #   - surface_aggregator_registry.c: add ssam_node_rtc to ssam_node_group_sl3
 #     (Surface Laptop 3 and 4; MSHW0110 is the SL4 AMD). rtc-surface then
 #     binds and the EC clock shows up as an extra /dev/rtcN.
-#   - rtc-surface.c: add a driver .shutdown that writes ktime_get_real_seconds()
-#     to the EC. The kernel's 11-minute NTP sync only writes
-#     RTC_SYSTOHC_DEVICE (rtc0, the CMOS), so without this the EC never learns
-#     the corrected time. The SSAM bus has no .shutdown of its own, so the
-#     driver core calls this one, and devices probed later shut down first, so
-#     it runs while the SAM controller is still up.
+#   - rtc-surface.c: at probe, read TimeZone from the PcRtc "RTC" EFI variable
+#     (0 if missing or 2047/unspecified) and apply it on every read and set,
+#     so the RTC device speaks UTC and a write of UTC makes the NEXT boot's
+#     CMOS UTC. Logs "EC clock kept N min ahead of UTC" when it is nonzero.
+#     Plus a driver .shutdown that writes the system time that way: the
+#     kernel's 11-minute NTP sync only writes RTC_SYSTOHC_DEVICE (rtc0, the
+#     CMOS), so without it the EC never learns the corrected time. The SSAM
+#     bus has no .shutdown of its own, so the driver core calls this one, and
+#     devices probed later shut down first, so it runs while the SAM
+#     controller is still up.
 #
-# Checked before committing:
+# Checked before pushing:
 #   - Generated with diff -U3 against CachyOS's own files at tag
 #     cachyos-7.2.9-2 with rebased.patch's registry and rtc-surface hunks
 #     applied. Applies with -F0, no fuzz, no offset.
@@ -226,11 +246,12 @@ date=2026-10-04
 #     prints ":: surface-rtc: ... building without it" and carries on. Both
 #     paths were run under set -eE with an ERR trap, as makepkg runs prepare().
 #   - Both files compiled with clang (LLVM=1, W=1) against the installed
-#     7.2.9-2-cachyos-surface-latest headers, patched and unpatched: no
-#     errors, no warnings.
+#     7.2.9-2-cachyos-surface-latest headers: no errors, no warnings; modpost
+#     resolves efi and the SSAM symbols.
 #
-# NOT build- or boot-validated yet. After booting it, check that the EC clock
-# is a device: grep -l surface /sys/class/rtc/rtc*/name. After the SECOND boot
-# (the first shutdown is what writes the EC), check that
-# journalctl -b | grep 'setting system clock' matches real UTC to within
-# seconds instead of being a timezone offset ahead.
+# NOT build- or boot-validated yet. After booting it:
+#   journalctl -b -k | grep -E 'EC clock kept|setting system clock'
+# should show "EC clock kept 480 min ahead of UTC". After the SECOND boot (the
+# first shutdown is what corrects the EC), 'setting system clock' should match
+# real UTC to within seconds instead of being ~2 h ahead. If it is ~8 h off in
+# either direction, the firmware's rule is not EC - TimeZone after all.
