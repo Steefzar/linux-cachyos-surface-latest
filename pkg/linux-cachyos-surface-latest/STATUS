@@ -267,3 +267,37 @@ date=2026-10-09
 #   journalctl -b -k | grep -E 'EC clock kept|setting system clock'
 # If 'setting system clock' is ever ~8 h off in either direction after a
 # shutdown on this kernel, the firmware's TimeZone rule has changed.
+
+# 2026-10-14 -- context-only refresh for cachyos-7.2.10-1. No semantic change.
+#
+# The 09:10 run aborted with one reject, drivers/hid/hid-multitouch.c hunk 20
+# (mt_resume/mt_remove). Upstream changed one line of that hunk's trailing
+# context, in mt_remove():
+#   -	timer_delete_sync(&td->release_timer);
+#   +	timer_shutdown_sync(&td->release_timer);
+# That is stable backport 5acb2dace582 ("HID: multitouch: stop the release
+# timer from being rearmed on remove", CachyOS a0125ca86e40): a report that
+# arrives after timer_delete_sync() could rearm the sticky-finger timer, which
+# then fired on the freed mt_device. It is the only change to the file between
+# cachyos-7.2.9-2 and cachyos-7.2.10-1.
+#
+# Our hunk adds the tablet-mode-switch reset and unregister_pm_notifier()
+# BEFORE that line, and both still run before it, as they did before. Neither
+# touches release_timer (mt_pm_notifier only drives the keyboard backlight),
+# so upstream's fix and ours do not interact. The section was regenerated with
+# diff -U3 -p from a real tree: the only difference from the old section is
+# that context line; all 23 @@ headers are byte-identical.
+#
+# Checked before pushing, against a pristine cachyos-7.2.10-1 with
+# dkms-clang.patch applied first, in prepare()'s order:
+#   - amd-pstate-readonly-auto-sel.patch passes its -F0 gate.
+#   - rebased.patch: 92 files, 0 failures, 0 rejects, 0 hunks needing fuzz,
+#     32 applied at an offset; also clean as a patch -F0 dry run.
+#   - surface-rtc-ec-clock.patch passes its -F0 gate after it.
+#   - No duplicate MT_QUIRK_* BIT(), MT_CLS_* value or BTUSB_* BIT(); ours are
+#     still BIT(27)-(29), 0x0118/0x0119 and BIT(30), and upstream took none of
+#     them. No duplicate #define name in the 92 patched files that the
+#     pristine tree does not also have.
+#
+# NOT proven: nothing here was compiled or booted. validated_against stays at
+# cachyos-7.2.9-2 until the dashboard's boot confirmation moves it.
