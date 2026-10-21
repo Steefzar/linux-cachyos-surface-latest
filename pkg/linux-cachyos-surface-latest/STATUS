@@ -2,7 +2,7 @@
 # Format: rebased_from=<linux-surface tag the patches were taken from>
 #         validated_against=<cachyos kernel version this patch set was confirmed to build+boot on>
 #         date=<when this snapshot was last confirmed>
-rebased_from=arch-6.19.8-3
+rebased_from=arch-7.2.11-1
 validated_against=cachyos-7.2.11-1
 date=2026-10-16
 
@@ -364,6 +364,82 @@ date=2026-10-16
 #     Surface Pro 9 0x08 case (a %x given an unsigned long, a "0x02x" missing
 #     its %), printed by every 7.2 build too, and CONFIG_WERROR is off.
 #     Not covered: linking, modpost, LTO and the full -O3 build.
+#
+# NOT proven: no full kernel was built or booted. validated_against stays at
+# cachyos-7.2.11-1 until the dashboard's boot confirmation moves it.
+
+# 2026-10-21 (later the same day) -- REBASED FROM linux-surface arch-7.2.11-1.
+# rebased.patch is no longer the 6.19 set carried forward; it is linux-surface's
+# own patches/7.2 (15 patches, tag arch-7.2.11-1, 2026-10-18) applied to
+# cachyos-7.3.0-2 and flattened. surface.config is their configs/surface-7.3.config.
+# linux-surface still has no patches/7.3, so prepare() still takes the
+# hand-rebase path.
+#
+# How: applied 0001..0015 in order to a pristine 7.3.0-2, fixed what broke,
+# then regenerated every file section with diff -U3 -p against the pristine
+# tree (git-style headers, real index blob ids). Same 92 files, 46 of them new,
+# as the 6.19-based patch.
+#
+# What broke applying their 7.2 set to 7.3 (all upstream movement):
+#   - 0005-ipts pci-me.c: rejected; the same table restyle as this morning.
+#     Their line is identical to ours; it now uses the "{ ... }" style.
+#   - 0013-cameras ipu-bridge.c: fuzz 2, the same new Lenovo/Samsung entries.
+#     Lands exactly where ours did.
+#   - 0013-cameras ov8865.c: both commits ("Drop the runtime PM usage count on
+#     stream failure", "Program the sensor on stream start") are upstream in
+#     7.3 as 3fe797a12bfa and 4e1446ac169a; 7.3's ov8865_s_stream() and
+#     ov8865_resume() match the patched result line for line. Dropped.
+#   - 0015-hid-surface drivers/hid/Makefile: fuzz 1, landed correctly.
+#
+# What this changes against this morning's 6.19-based patch, found by applying
+# both to 7.3.0-2 and diffing the resulting files (only 5 files differ):
+#   - drivers/hid/ipts/desc.h: IPTS_HID_REPORT_DATA_SIZE 7485 -> 7488, their
+#     5eb5954034da "hid: ipts: Fix size of synthesized HID data report"
+#     (linux-surface #2150, PR #2233). Since hid-core 0a3fe972a7cb, which IS in
+#     7.3.0-2, a report shorter than its descriptor is dropped, which broke IPTS
+#     touch on fallback-descriptor devices (e.g. Surface Book 1). A real fix the
+#     6.19 set lacked.
+#   - int3472/discrete.c: their version fixes the two -Wformat warnings every
+#     7.2 build printed (%lx for gpio_flags, a "0x02x" missing its %). Same
+#     logic otherwise.
+#   - hid-multitouch.c: they fixed upstream's BIT(26)/0x0117 collision
+#     themselves, with the same free values in a different order:
+#     TYPE_COVER_BACKLIGHT BIT(27), TABLET_MODE_SWITCH BIT(28),
+#     SKIP_MODESET_ON_HW_OPEN_CLOSE BIT(29); TYPE_COVER 0x0118, TOUCHPAD
+#     0x0119. The touchpad class/device entries moved after the type cover's.
+#     Lookups are by class name and product ID, so order does not matter.
+#   - iommu.c (same IPTS quirk, placed elsewhere) and drivers/hid/Makefile
+#     (ipts/ithc line placement): cosmetic.
+#   - btusb.c: they also chose BIT(30) for BTUSB_LOWER_LESCAN_INTERVAL;
+#     identical to ours.
+#   Nothing from the 6.19-based patch is lost: every other resulting file is
+#   byte-identical. The 6.19 set's acpi_tad.c and dirtyfrag (net/*) patches
+#   were already absent from ours, and linux-surface dropped them for 7.2 too.
+#
+# surface.config: their 7.2 and 7.3 fragments are byte-identical. The one change
+# against ours (= their 6.19) is that the "HOTFIX FOR CVE-2026-31431" block,
+# "# CONFIG_CRYPTO_USER_API_AEAD is not set" (their 029e7e8601, copy.fail,
+# linux-surface #2090), is gone, so algif_aead is back to the base config's =m.
+# Checked first that 7.3 fixes it at the root: a664bf3d603d (algif_aead back
+# to out-of-place, same reporter), ffdd2bc37895 (AF_ALG zero-copy removed;
+# its author verified it "would have prevented the copy.fail exploit"), and
+# 2f204fe718f5 (af_alg_restrict sysctl, default 1, which allowlists AF_ALG
+# algorithms for unprivileged users).
+#
+# Checked before pushing, against a fresh cachyos-7.3.0-2 extract, by sourcing
+# the PKGBUILD and running prepare() up to the CPU-opt step under set -eE with
+# an ERR trap, with linux-surface checked out at arch-7.2.11-1:
+#   - dkms-clang.patch, then rebased.patch: 92 files, 0 failures, 0 rejects,
+#     0 fuzz, 0 offsets (it was generated against this exact tree); clean
+#     under -F0. surface-rtc-ec-clock.patch passes its -F0 gate and applies
+#     (rtc-surface.c and the SSAM registry are byte-identical in both sets).
+#   - After merge_config + olddefconfig, all 41 symbols in surface.config hold
+#     their requested value in the final .config.
+#   - All 53 touched .c files compile with clang 23.1.3, LLVM=1, the merged
+#     config, in one make run: 0 errors, 0 warnings.
+#   - No duplicate MT_QUIRK_* BIT(), MT_CLS_* value or BTUSB_* BIT(); no
+#     duplicate #define name that the pristine tree does not also have.
+#   Not covered: linking, modpost, LTO and the full -O3 build.
 #
 # NOT proven: no full kernel was built or booted. validated_against stays at
 # cachyos-7.2.11-1 until the dashboard's boot confirmation moves it.
