@@ -15,19 +15,18 @@ release**, even ahead of upstream support:
   validated against). If that no longer applies against a newer kernel, the
   build aborts with a clear message instead of shipping something broken.
 - Either way it also carries one local fix that is not from linux-surface,
-  [`amd-pstate-readonly-auto-sel.patch`](pkg/linux-cachyos-surface-latest/amd-pstate-readonly-auto-sel.patch),
-  which lets `amd-pstate` load on firmware that declares CPPC `auto_sel`
-  read-only. On the Surface Laptop 4 AMD it works together with the kernel
-  parameter `amd_pstate=guided` (the firmware has no EPP, so the default
-  active mode cannot work there). It is skipped, not fatal, if it stops
-  applying.
-- It carries a second local fix,
   [`surface-rtc-ec-clock.patch`](pkg/linux-cachyos-surface-latest/surface-rtc-ec-clock.patch),
   which lets linux-surface's `rtc-surface` driver bind on the Surface Laptop
   3/4 and write the system time to the EC clock at shutdown. The firmware
   rebuilds the CMOS clock from the EC at every boot (EC minus its stored
   TimeZone), so without it the laptop boots on whatever time the EC last
-  held. Also skipped, not fatal, if it stops applying.
+  held. It is skipped, not fatal, if it stops applying.
+- Until 7.2 it carried a second one, `amd-pstate-readonly-auto-sel.patch`,
+  which let `amd-pstate` load on firmware that declares CPPC `auto_sel`
+  read-only. Kernel 7.3 has the same fix upstream (`84967922853d`), so it was
+  retired. On the Surface Laptop 4 AMD, `amd-pstate` still needs the kernel
+  parameter `amd_pstate=guided`: the firmware has no EPP, so the default
+  active mode cannot work there.
 
 > **Prefer only kernel versions linux-surface officially supports?** Use
 > the sibling package:

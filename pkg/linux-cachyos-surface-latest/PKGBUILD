@@ -235,7 +235,6 @@ source=(
     "https://github.com/CachyOS/linux/releases/download/${_srcname}/${_srcname}.tar.gz"
     "config"
     "rebased.patch"
-    "amd-pstate-readonly-auto-sel.patch"
     "surface-rtc-ec-clock.patch"
     "surface.config"
     "linux-surface::git+${_surface_repo_url}"
@@ -314,7 +313,6 @@ prepare() {
         src="${src%%::*}"
         [[ "$src" == "${_patchsource}"/misc/nvidia/*.patch ]] && continue
         [[ "$src" == "rebased.patch" ]] && continue
-        [[ "$src" == "amd-pstate-readonly-auto-sel.patch" ]] && continue
         [[ "$src" == "surface-rtc-ec-clock.patch" ]] && continue
         src="${src##*/}"
         src="${src%.zst}"
@@ -322,18 +320,6 @@ prepare() {
         echo "Applying patch $src..."
         patch -Np1 < "../$src"
     done
-
-    # Local fix, not from linux-surface (see STATUS): lets amd-pstate load on
-    # firmware whose _CPC declares auto_sel read-only (Surface Laptop 4 AMD).
-    # Optional on purpose: if it stops applying with zero fuzz -- upstream
-    # changed the code or fixed it -- build without it rather than block the
-    # kernel update.
-    if patch -Np1 -F0 --dry-run < ../amd-pstate-readonly-auto-sel.patch > /dev/null; then
-        echo ":: amd-pstate: applying amd-pstate-readonly-auto-sel.patch"
-        patch -Np1 -F0 < ../amd-pstate-readonly-auto-sel.patch
-    else
-        echo ":: amd-pstate: amd-pstate-readonly-auto-sel.patch does not apply to ${_srcname}, building without it (see STATUS)"
-    fi
 
     echo "Checking whether linux-surface has official ${_major} patches yet..."
     local _ls_dir="$srcdir/linux-surface"
@@ -363,8 +349,9 @@ prepare() {
     # device on Surface Laptop 3/4 and has it write the system time to the EC
     # clock at shutdown, because the firmware reloads the CMOS RTC from that
     # clock at every boot. Applied after the Surface patches since it edits
-    # rtc-surface.c, which they add. Optional for the same reason as
-    # amd-pstate above.
+    # rtc-surface.c, which they add. Optional on purpose: if it stops
+    # applying with zero fuzz -- upstream changed the code or fixed it --
+    # build without it rather than block the kernel update.
     if patch -Np1 -F0 --dry-run < ../surface-rtc-ec-clock.patch > /dev/null; then
         echo ":: surface-rtc: applying surface-rtc-ec-clock.patch"
         patch -Np1 -F0 < ../surface-rtc-ec-clock.patch

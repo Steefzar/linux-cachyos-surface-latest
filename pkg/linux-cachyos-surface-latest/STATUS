@@ -301,3 +301,69 @@ date=2026-10-16
 #
 # NOT proven: nothing here was compiled or booted. validated_against stays at
 # cachyos-7.2.9-2 until the dashboard's boot confirmation moves it.
+
+# 2026-10-21 -- context-only refresh for cachyos-7.3.0-2, the first 7.3, and
+# amd-pstate-readonly-auto-sel.patch RETIRED: 7.3 carries the fix upstream.
+#
+# The 09:11 run aborted on one reject and one fuzzed hunk in rebased.patch,
+# and skipped the amd-pstate patch:
+#
+#   drivers/misc/mei/pci-me.c @98 -- REJECTED. Upstream restyled the whole
+#     mei_me_pci_tbl from {PCI_DEVICE_DATA(...)} to { PCI_DEVICE_DATA(...) }.
+#     Whitespace only. Our line (MEI_ICP_LP_3, 0x34E4, the Ice Lake iTouch
+#     MEI that IPTS needs) is still not upstream; it now uses the new style.
+#   drivers/media/pci/intel/ipu-bridge.c hunk 2 -- applied only "with fuzz 2".
+#     Upstream appended Lenovo X9-14/X9-15 and Samsung Galaxy Book5 Pro 360
+#     entries to upside_down_sensor_dmi_ids, so our trailing context moved.
+#     Our Surface Pro 8 (INT33BE) and Pro 9 (OVTI5693) entries are still not
+#     upstream and still go right before the terminator. The fuzzed apply had
+#     put them in the right place, but fuzz counts as a failure here.
+#   amd-pstate-readonly-auto-sel.patch -- "does not apply". Not a break:
+#     upstream 84967922853d ("cpufreq/amd-pstate: Skip auto_sel write when it
+#     already matches the mode", 7.3 merge window) adds to shmem_init_perf()
+#
+#       if ((cppc_state != AMD_PSTATE_PASSIVE) == auto_sel)
+#               return 0;
+#
+#     which is our check, written the other way round. The only other
+#     cppc_set_auto_sel() caller (amd_pstate_change_mode_without_dvr_change)
+#     ignores the return value, as before. So the Surface Laptop 4 AMD keeps
+#     guided amd-pstate on 7.3 without a local patch; it still needs
+#     amd_pstate=guided on the command line (no EPP, so active mode cannot
+#     work). The patch, its source=() entry and its prepare() gate are
+#     removed. Had they stayed, every build would print a skip, and the release
+#     notes would list the patch as "not applied to this version", which reads
+#     like a lost fix. It is in git history if CachyOS ever reverts upstream's.
+#
+# Both rebased.patch sections regenerated with diff -U3 -p from a real tree.
+# Every added line is byte-identical to before; only context and @@ line
+# numbers changed.
+#
+# linux-surface still has no patches/7.3 (newest arch-7.2.11-1, newest set
+# patches/7.2), so this hand-rebase is still what builds. rebased_from stays
+# arch-6.19.8-3: this refresh did not re-take linux-surface's patches.
+#
+# Checked before pushing, against a fresh cachyos-7.3.0-2 extract, by
+# sourcing the edited PKGBUILD and running prepare() up to the CPU-opt step
+# under set -eE with an ERR trap, as makepkg does, with a real linux-surface
+# checkout at arch-7.2.11-1:
+#   - dkms-clang.patch, then rebased.patch: 92 files, 0 failures, 0 rejects,
+#     0 hunks needing fuzz, 54 applied at an offset; also clean under -F0.
+#   - surface-rtc-ec-clock.patch passes its -F0 gate after it and applies.
+#   - No duplicate MT_QUIRK_* BIT(), MT_CLS_* value or BTUSB_* BIT(). Ours are
+#     still BIT(27)-(29), 0x0118/0x0119 and BIT(30); upstream's highest are
+#     MT_QUIRK BIT(26) and BTUSB BIT(29). No duplicate #define name in the 92
+#     patched files that the pristine tree does not also have. No added table
+#     entry that 7.3 already has (the rt5645/cht "Surface 3" entries are the
+#     OEMB-firmware variants, a different DMI match from upstream's).
+#   - NEW this time, because 7.2 -> 7.3 is a whole merge window: every .c file
+#     that rebased.patch or surface-rtc-ec-clock.patch touches (53) compiled
+#     against the patched 7.3.0-2 tree with the build's merged config, clang
+#     23.1.3, LLVM=1 (the builder has the same clang), via kbuild single-target
+#     builds. 0 errors. 2 warnings, both pre-existing: int3472/discrete.c's
+#     Surface Pro 9 0x08 case (a %x given an unsigned long, a "0x02x" missing
+#     its %), printed by every 7.2 build too, and CONFIG_WERROR is off.
+#     Not covered: linking, modpost, LTO and the full -O3 build.
+#
+# NOT proven: no full kernel was built or booted. validated_against stays at
+# cachyos-7.2.11-1 until the dashboard's boot confirmation moves it.
