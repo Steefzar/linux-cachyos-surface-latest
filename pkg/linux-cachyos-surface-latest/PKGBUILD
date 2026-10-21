@@ -32,7 +32,7 @@
 # 'bore' - select 'Burst-Oriented Response Enhancer'
 # 'bmq' - select 'BMQ Scheduler'
 # 'hardened' - select 'BORE Scheduler hardened' ## kernel with hardened config and hardening patches with the bore scheduler
-# 'cachyos' - select 'CachyOS Default Scheduler (BORE)'
+# 'cachyos' - select 'CachyOS Default Scheduler (EEVDF)'
 # 'eevdf' - select 'EEVDF Scheduler'
 # 'rt' - select EEVDF, but includes a series of realtime patches
 # 'rt-bore' - select Burst-Oriented Response Enhancer, but includes a series of realtime patches
@@ -172,12 +172,22 @@ _is_ci_build() {
     return $?
 }
 
+# _cpusched=bore builds the BORE variant under its own name,
+# linux-cachyos-bore-surface-latest, the way CachyOS's linux-cachyos-bore sits
+# beside linux-cachyos. Every other value keeps the default name and EEVDF.
+_sched_name=
+_sched_label=EEVDF
+if [ "$_cpusched" = "bore" ]; then
+    _sched_name=bore-
+    _sched_label=BORE
+fi
+
 if _is_lto_kernel && [ "$_use_lto_suffix" = "yes"  ]; then
-    _pkgsuffix=cachyos-surface-latest-lto
+    _pkgsuffix=cachyos-${_sched_name}surface-latest-lto
 elif ! _is_lto_kernel && [ "$_use_gcc_suffix" = "yes" ]; then
-    _pkgsuffix=cachyos-surface-latest-gcc
+    _pkgsuffix=cachyos-${_sched_name}surface-latest-gcc
 else
-    _pkgsuffix=cachyos-surface-latest
+    _pkgsuffix=cachyos-${_sched_name}surface-latest
 fi
 
 pkgbase="linux-$_pkgsuffix"
@@ -200,7 +210,7 @@ _tagrel=1
 # Top-level directory inside the CachyOS pre-patched kernel tarball, and
 # also the release tag name.
 _srcname=cachyos-${_major}.${_minor}-${_tagrel}
-pkgdesc='CachyOS kernel (EEVDF/BORE + LTO + Surface patches), tracking the newest CachyOS release ahead of linux-surface official support when needed'
+pkgdesc="CachyOS kernel (${_sched_label} + LTO + Surface patches), tracking the newest CachyOS release ahead of linux-surface official support when needed"
 pkgrel=3
 _kernver="$pkgver-$pkgrel"
 _kernuname="${pkgver}-${_pkgsuffix}"
