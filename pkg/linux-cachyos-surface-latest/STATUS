@@ -443,3 +443,44 @@ date=2026-11-18
 #
 # NOT proven: no full kernel was built or booted. validated_against stays at
 # cachyos-7.2.11-1 until the dashboard's boot confirmation moves it.
+
+# 2026-11-26 -- surface-rtc-ec-clock.patch regenerated for linux-surface
+# arch-7.3.6-1. No change to rebased.patch or to the PKGBUILD.
+#
+# The 2026-11-25 builds (7.3.6-3, EEVDF and BORE, on cachyos-7.3.6-1/-2) logged
+# ":: surface-rtc: surface-rtc-ec-clock.patch does not apply ... building
+# without it", so they would have booted 1h57m fast again. They were never
+# published. Cause: linux-surface's 7.3.6 set split the Surface Laptop 3/4
+# registry group in two, by DPTF support:
+#
+#   ssam_node_group_sl3       Surface Laptop 3 13" Intel (MSHW0114)
+#   ssam_node_group_sl3_dptf  Surface Laptop 3 15" AMD and 4 (MSHW0110,
+#                             MSHW0250), with ssam_node_bat_*_dptf
+#
+# and added ssam_node_has_dptf between ssam_node_hub_base and the AC adapter
+# node, so both registry hunks lost their context. Under default fuzz both
+# hunks still "applied", the second one into ssam_node_group_sl3 -- the 13"
+# Intel group, not the one monketop (MSHW0110) uses -- so the -F0 gate did its
+# job: a fuzzed apply would have built and published a kernel whose fix
+# silently did nothing on this laptop.
+#
+# The patch now adds ssam_node_rtc to BOTH groups, which keeps its coverage
+# (every Surface Laptop 3 and 4) as before. The node definition sits right
+# after ssam_node_hub_base, as before. The rtc-surface.c section is unchanged,
+# byte for byte; rtc-surface.c is identical in the 7.3.4-2 and 7.3.6-1 sets.
+#
+# Checked before pushing:
+#   - Generated with git diff -U3 against the real tree of the failed run
+#     (cachyos-7.3.6-1 with linux-surface arch-7.3.6-1's patches applied, as
+#     prepare() leaves it just before the surface-rtc gate).
+#   - patch -Np1 -F0 --dry-run: 0 failures, 0 fuzz, on that tree and on the
+#     BORE build's cachyos-7.3.6-2 tree (both files byte-identical there).
+#     CachyOS cachyos-7.3.6-1...cachyos-7.3.6-3 touches no surface or rtc file.
+#   - Both objects (surface_aggregator_registry.o, rtc-surface.o) compile in
+#     that tree with the build's own flags (clang, LLVM=1, ThinLTO config):
+#     no errors, no warnings.
+#   Not covered until the next build and boot: the dashboard's boot prompt.
+#
+# When the next major (7.4) falls back to rebased.patch, which still carries
+# the arch-7.2.11-1 registry with the single sl3 group, this patch will not
+# apply there either; regenerate it then against that tree.

@@ -11,7 +11,7 @@ Register the node for Laptop 3/4 and offset reads and writes by the TimeZone.
 Measurements, reasoning and how to regenerate this patch are in STATUS.
 
 diff --git a/drivers/platform/surface/surface_aggregator_registry.c b/drivers/platform/surface/surface_aggregator_registry.c
-index e0c07e5..94072b2 100644
+index 8b33447..22e35a6 100644
 --- a/drivers/platform/surface/surface_aggregator_registry.c
 +++ b/drivers/platform/surface/surface_aggregator_registry.c
 @@ -51,6 +51,12 @@ static const struct software_node ssam_node_hub_base = {
@@ -24,16 +24,24 @@ index e0c07e5..94072b2 100644
 +	.parent = &ssam_node_root,
 +};
 +
- /* AC adapter. */
- static const struct software_node ssam_node_bat_ac = {
- 	.name = "ssam:01:02:01:01:01",
-@@ -252,6 +258,7 @@ static const struct software_node *ssam_node_group_sb3[] = {
- /* Devices for Surface Laptop 3 and 4. */
+ /* Property of the battery and AC adapter devices of an EC with DPTF support. */
+ static const struct property_entry ssam_node_has_dptf[] = {
+ 	PROPERTY_ENTRY_BOOL("has_dptf"),
+@@ -299,6 +305,7 @@ static const struct software_node *ssam_node_group_sb3[] = {
+ /* Devices for Surface Laptop 3 (13", Intel), without DPTF. */
  static const struct software_node *ssam_node_group_sl3[] = {
  	&ssam_node_root,
 +	&ssam_node_rtc,
  	&ssam_node_bat_ac,
  	&ssam_node_bat_main,
+ 	&ssam_node_tmp_perf_profile,
+@@ -311,6 +318,7 @@ static const struct software_node *ssam_node_group_sl3[] = {
+ /* Devices for Surface Laptop 3 (15", AMD) and 4 (13", Intel; 15", AMD), with DPTF. */
+ static const struct software_node *ssam_node_group_sl3_dptf[] = {
+ 	&ssam_node_root,
++	&ssam_node_rtc,
+ 	&ssam_node_bat_ac_dptf,
+ 	&ssam_node_bat_main_dptf,
  	&ssam_node_tmp_perf_profile,
 diff --git a/drivers/rtc/rtc-surface.c b/drivers/rtc/rtc-surface.c
 index f6c17c4..3462d52 100644
